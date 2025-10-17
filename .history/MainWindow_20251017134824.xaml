@@ -1,0 +1,20 @@
+﻿<Window x:Class="FullScreenMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FullScreenMonitor"
+        mc:Ignorable="d"
+        Title="FullScreenMonitor"
+        Height="1" 
+        Width="1"
+        WindowStyle="None"
+        ShowInTaskbar="False"
+        Visibility="Hidden"
+        ResizeMode="NoResize"
+        WindowState="Minimized">
+    <!-- システムトレイ常駐用の隠しウィンドウ -->
+    <Grid>
+        <!-- このウィンドウは表示されないため、コンテンツは空 -->
+    </Grid>
+</Window>
