@@ -125,6 +125,45 @@ namespace FullScreenMonitor.Services
         }
 
         /// <summary>
+        /// 同一モニター上の対象プロセス以外のウィンドウを最小化
+        /// </summary>
+        /// <param name="targetWindow">対象ウィンドウハンドル</param>
+        /// <param name="monitorHandle">モニターハンドル</param>
+        /// <returns>最小化したウィンドウ数</returns>
+        public int MinimizeAllNonTargetWindows(IntPtr targetWindow, IntPtr monitorHandle)
+        {
+            lock (_lockObject)
+            {
+                var minimizedCount = 0;
+
+                try
+                {
+                    var windowsOnMonitor = GetNonTargetWindowsOnMonitor(targetWindow, monitorHandle);
+
+                    foreach (var hWnd in windowsOnMonitor)
+                    {
+                        // ウィンドウが可視で、システムウィンドウでない場合のみ最小化
+                        if (NativeMethods.IsWindowVisible(hWnd) && !NativeMethods.IsSystemWindow(hWnd))
+                        {
+                            if (NativeMethods.ShowWindow(hWnd, NativeMethods.SW_MINIMIZE))
+                            {
+                                _minimizedWindows.Add(hWnd);
+                                minimizedCount++;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ErrorMessages.WindowMinimizeError, ex);
+                    throw new WindowOperationException(ErrorMessages.WindowMinimizeError, IntPtr.Zero, ex);
+                }
+
+                return minimizedCount;
+            }
+        }
+
+        /// <summary>
         /// 最小化履歴をクリア
         /// </summary>
         public void ClearMinimizedHistory()
@@ -186,6 +225,68 @@ namespace FullScreenMonitor.Services
                         {
                             return true; // 既に最小化されているウィンドウはスキップ
                         }
+                    }
+
+                    windows.Add(windowHandle);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"ウィンドウ取得中にエラーが発生しました: {ex.Message}");
+                }
+
+                return true; // 次のウィンドウをチェック
+            }, IntPtr.Zero);
+
+            return windows;
+        }
+
+        /// <summary>
+        /// 指定モニター上の対象ウィンドウ以外のウィンドウを取得
+        /// </summary>
+        /// <param name="targetWindow">対象ウィンドウハンドル</param>
+        /// <param name="monitorHandle">モニターハンドル</param>
+        /// <returns>ウィンドウハンドルのリスト</returns>
+        private List<IntPtr> GetNonTargetWindowsOnMonitor(IntPtr targetWindow, IntPtr monitorHandle)
+        {
+            var windows = new List<IntPtr>();
+
+            NativeMethods.EnumWindows((windowHandle, lParam) =>
+            {
+                try
+                {
+                    // 対象ウィンドウは除外
+                    if (windowHandle == targetWindow)
+                    {
+                        return true;
+                    }
+
+                    // ウィンドウが可視でない場合はスキップ
+                    if (!NativeMethods.IsWindowVisible(windowHandle))
+                    {
+                        return true;
+                    }
+
+                    // システムウィンドウは除外
+                    if (NativeMethods.IsSystemWindow(windowHandle))
+                    {
+                        return true;
+                    }
+
+                    // ウィンドウが最小化されていないかチェック
+                    var placement = new NativeMethods.WINDOWPLACEMENT();
+                    if (NativeMethods.GetWindowPlacement(windowHandle, ref placement))
+                    {
+                        if (placement.ShowCmd == NativeMethods.SW_SHOWMINIMIZED)
+                        {
+                            return true; // 既に最小化されているウィンドウはスキップ
+                        }
+                    }
+
+                    // ウィンドウが指定モニター上にあるかチェック
+                    var windowMonitor = NativeMethods.MonitorFromWindow(windowHandle, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                    if (windowMonitor != monitorHandle)
+                    {
+                        return true;
                     }
 
                     windows.Add(windowHandle);

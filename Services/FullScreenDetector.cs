@@ -32,6 +32,11 @@ namespace FullScreenMonitor.Services
         /// </summary>
         public event EventHandler<FullScreenStateChangedEventArgs>? FullScreenStateChanged;
 
+        /// <summary>
+        /// 対象プロセスがフォーカスされた時のイベント
+        /// </summary>
+        public event EventHandler<FullScreenStateChangedEventArgs>? TargetProcessFocused;
+
         #endregion
 
         #region プロパティ
@@ -55,6 +60,11 @@ namespace FullScreenMonitor.Services
         /// 現在の全画面ウィンドウが属するモニター
         /// </summary>
         public IntPtr CurrentMonitor { get; private set; }
+
+        /// <summary>
+        /// 前回のフォアグラウンドウィンドウ
+        /// </summary>
+        private IntPtr _lastForegroundWindow = IntPtr.Zero;
 
         #endregion
 
@@ -194,6 +204,48 @@ namespace FullScreenMonitor.Services
                     FullScreenStateChanged?.Invoke(this, new FullScreenStateChangedEventArgs(
                         isFullScreen, fullScreenWindow, CurrentMonitor, processName, windowTitle));
                 }
+
+                // 全画面状態中はフォーカス変更をチェック
+                if (isFullScreen)
+                {
+                    CheckForFocusChange();
+                }
+            }
+        }
+
+        /// <summary>
+        /// フォーカス変更をチェック
+        /// </summary>
+        private void CheckForFocusChange()
+        {
+            try
+            {
+                var currentForegroundWindow = NativeMethods.GetForegroundWindow();
+                
+                // フォーカスが変更された場合
+                if (currentForegroundWindow != _lastForegroundWindow && currentForegroundWindow != IntPtr.Zero)
+                {
+                    _lastForegroundWindow = currentForegroundWindow;
+
+                    // フォアグラウンドウィンドウのプロセス名を取得
+                    var processName = GetProcessNameFromWindow(currentForegroundWindow);
+                    
+                    // 対象プロセスかどうかチェック
+                    if (!string.IsNullOrEmpty(processName) && _targetProcesses.Contains(processName))
+                    {
+                        var windowTitle = NativeMethods.GetWindowTitle(currentForegroundWindow);
+                        
+                        _logger.LogInfo($"対象プロセスがフォーカスされました: {processName} ({windowTitle})");
+                        
+                        // TargetProcessFocusedイベントを発火
+                        TargetProcessFocused?.Invoke(this, new FullScreenStateChangedEventArgs(
+                            true, currentForegroundWindow, CurrentMonitor, processName, windowTitle));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug($"フォーカス変更チェック中にエラーが発生しました: {ex.Message}");
             }
         }
 

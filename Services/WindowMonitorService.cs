@@ -101,6 +101,7 @@ namespace FullScreenMonitor.Services
                 {
                     _detector = new FullScreenDetector(CurrentSettings.TargetProcesses, CurrentSettings.MonitorInterval, _logger);
                     _detector.FullScreenStateChanged += Detector_FullScreenStateChanged;
+                    _detector.TargetProcessFocused += Detector_TargetProcessFocused;
                     _detector.StartMonitoring();
 
                     IsMonitoring = true;
@@ -129,9 +130,14 @@ namespace FullScreenMonitor.Services
 
                 try
                 {
-                    _detector?.StopMonitoring();
-                    _detector?.Dispose();
-                    _detector = null;
+                    if (_detector != null)
+                    {
+                        _detector.FullScreenStateChanged -= Detector_FullScreenStateChanged;
+                        _detector.TargetProcessFocused -= Detector_TargetProcessFocused;
+                        _detector.StopMonitoring();
+                        _detector.Dispose();
+                        _detector = null;
+                    }
 
                     // 最小化されたウィンドウがあれば復元
                     if (_minimizer.MinimizedWindowCount > 0)
@@ -253,6 +259,32 @@ namespace FullScreenMonitor.Services
             {
                 _logger.LogError("全画面状態変更処理中にエラーが発生しました", ex);
                 ErrorOccurred?.Invoke(this, "全画面状態変更処理中にエラーが発生しました");
+            }
+        }
+
+        /// <summary>
+        /// 対象プロセスフォーカスイベントハンドラー
+        /// </summary>
+        private void Detector_TargetProcessFocused(object? sender, FullScreenStateChangedEventArgs e)
+        {
+            try
+            {
+                LastCheckTime = DateTime.Now;
+
+                _logger.LogInfo($"対象プロセスがフォーカスされました: {e.ProcessName} ({e.WindowTitle})");
+                
+                // 同一モニター上の対象プロセス以外のウィンドウを最小化
+                var minimizedCount = _minimizer.MinimizeAllNonTargetWindows(e.WindowHandle, e.MonitorHandle);
+                if (minimizedCount > 0)
+                {
+                    _logger.LogInfo($"{minimizedCount}個の対象外ウィンドウを最小化しました");
+                    WindowsMinimized?.Invoke(this, minimizedCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("対象プロセスフォーカス処理中にエラーが発生しました", ex);
+                ErrorOccurred?.Invoke(this, "対象プロセスフォーカス処理中にエラーが発生しました");
             }
         }
 

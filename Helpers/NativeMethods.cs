@@ -190,6 +190,12 @@ namespace FullScreenMonitor.Helpers
         public static extern int GetWindowTextLength(IntPtr hWnd);
 
         /// <summary>
+        /// 現在フォアグラウンドにあるウィンドウのハンドルを取得
+        /// </summary>
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetForegroundWindow();
+
+        /// <summary>
         /// ウィンドウクラス名を取得
         /// </summary>
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]

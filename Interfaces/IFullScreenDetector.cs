@@ -15,6 +15,11 @@ public interface IFullScreenDetector : IDisposable
     event EventHandler<FullScreenStateChangedEventArgs>? FullScreenStateChanged;
 
     /// <summary>
+    /// 対象プロセスがフォーカスされた時のイベント
+    /// </summary>
+    event EventHandler<FullScreenStateChangedEventArgs>? TargetProcessFocused;
+
+    /// <summary>
     /// 監視中かどうか
     /// </summary>
     bool IsMonitoring { get; }
