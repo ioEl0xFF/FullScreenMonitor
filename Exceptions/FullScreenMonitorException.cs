@@ -1,12 +1,10 @@
 using System;
-using System.Runtime.Serialization;
 
 namespace FullScreenMonitor.Exceptions;
 
 /// <summary>
 /// FullScreenMonitorアプリケーションの基底例外クラス
 /// </summary>
-[Serializable]
 public class FullScreenMonitorException : Exception
 {
     /// <summary>
@@ -64,25 +62,4 @@ public class FullScreenMonitorException : Exception
         ErrorCode = errorCode;
     }
 
-    /// <summary>
-    /// シリアライゼーション用コンストラクタ
-    /// </summary>
-    /// <param name="info">シリアライゼーション情報</param>
-    /// <param name="context">ストリーミングコンテキスト</param>
-    protected FullScreenMonitorException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-    {
-        ErrorCode = info.GetString(nameof(ErrorCode)) ?? "UNKNOWN_ERROR";
-    }
-
-    /// <summary>
-    /// シリアライゼーション情報を取得
-    /// </summary>
-    /// <param name="info">シリアライゼーション情報</param>
-    /// <param name="context">ストリーミングコンテキスト</param>
-    public override void GetObjectData(SerializationInfo info, StreamingContext context)
-    {
-        base.GetObjectData(info, context);
-        info.AddValue(nameof(ErrorCode), ErrorCode);
-    }
 }

@@ -31,7 +31,7 @@ public class ServiceContainer
     /// <param name="factory">ファクトリー関数</param>
     public void RegisterFactory<TInterface>(Func<TInterface> factory)
     {
-        _factories[typeof(TInterface)] = () => factory();
+        _factories[typeof(TInterface)] = () => factory()!;
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public class ServiceContainer
     public void RegisterSingleton<TInterface>(Func<TInterface> factory)
     {
         var lazyInstance = new Lazy<TInterface>(factory);
-        _factories[typeof(TInterface)] = () => lazyInstance.Value;
+        _factories[typeof(TInterface)] = () => lazyInstance.Value!;
     }
 
     /// <summary>

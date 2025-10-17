@@ -8,13 +8,13 @@ public static class WindowConstants
     /// <summary>
     /// メインウィンドウのサイズ（システムトレイ常駐用の隠しウィンドウ）
     /// </summary>
-    public const int HiddenWindowSize = 1;
+    public static readonly double HiddenWindowSize = 100.0;
 
     /// <summary>
     /// 設定ウィンドウのデフォルトサイズ
     /// </summary>
-    public const int SettingsWindowWidth = 500;
-    public const int SettingsWindowHeight = 400;
+    public static readonly double SettingsWindowWidth = 500.0;
+    public static readonly double SettingsWindowHeight = 400.0;
 
     /// <summary>
     /// 設定ウィンドウのマージン

@@ -1,4 +1,5 @@
 using System;
+using FullScreenMonitor.Constants;
 
 namespace FullScreenMonitor.Models;
 

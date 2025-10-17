@@ -2,9 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:FullScreenMonitor"
+        xmlns:constants="clr-namespace:FullScreenMonitor.Constants;assembly=FullScreenMonitor"
         Title="FullScreenMonitor - 設定"
-        Height="{x:Static local:WindowConstants.SettingsWindowHeight}"
-        Width="{x:Static local:WindowConstants.SettingsWindowWidth}"
+        Height="{x:Static constants:WindowConstants.SettingsWindowHeight}"
+        Width="{x:Static constants:WindowConstants.SettingsWindowWidth}"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
 
@@ -65,9 +66,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
     </Window.Resources>
 
-    <Grid Margin="{x:Static local:WindowConstants.SettingsWindowMargin}">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -78,7 +80,7 @@
         </Grid.RowDefinitions>
 
         <!-- 監視対象プロセス -->
-        <GroupBox Grid.Row="0" Header="監視対象プロセス" Margin="0,0,0,{x:Static local:WindowConstants.GroupBoxMargin}">
+        <GroupBox Grid.Row="0" Header="監視対象プロセス" Margin="0,0,0,15">
             <Grid Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -105,22 +107,22 @@
                                   DisplayMemberPath="DisplayText"
                                   IsEditable="True"
                                   Margin="0,0,5,0"
-                                  Height="{x:Static local:WindowConstants.ComboBoxHeight}"
-                                  Style="{StaticResource ModernTextBox}"
+                                  Height="25"
                                   SelectionChanged="ProcessComboBox_SelectionChanged"/>
                         <Button Grid.Column="1"
-                                Content="🔄"
+                                Content="更新"
                                 ToolTip="プロセス一覧を更新"
                                 Click="RefreshProcesses_Click"
-                                Width="{x:Static local:WindowConstants.RefreshButtonSize}"
-                                Height="{x:Static local:WindowConstants.RefreshButtonSize}"
+                                Width="50"
+                                Height="25"
+                                FontSize="10"
                                 Style="{StaticResource ModernButton}"/>
                     </Grid>
                     <Button Grid.Column="2"
                             Content="追加"
                             Click="AddProcess_Click"
                             Width="60"
-                            Height="{x:Static local:WindowConstants.StandardButtonHeight}"
+                            Height="25"
                             Style="{StaticResource ModernButton}"/>
                 </Grid>
 
@@ -129,7 +131,7 @@
                          Grid.Row="1"
                          ItemsSource="{Binding TargetProcesses}"
                          SelectionMode="Extended"
-                         Height="{x:Static local:WindowConstants.ProcessListHeight}"
+                         Height="120"
                          Margin="0,0,0,10"
                          BorderBrush="#FFCCCCCC"
                          BorderThickness="1"/>
@@ -139,14 +141,14 @@
                         Content="選択項目を削除"
                         Click="RemoveProcess_Click"
                         ToolTip="Ctrl+クリックで複数選択可能"
-                        Height="{x:Static local:WindowConstants.StandardButtonHeight}"
+                        Height="25"
                         VerticalAlignment="Top"
                         Style="{StaticResource ModernButton}"/>
             </Grid>
         </GroupBox>
 
         <!-- 監視間隔 -->
-        <GroupBox Grid.Row="1" Header="監視間隔" Margin="0,0,0,{x:Static local:WindowConstants.GroupBoxMargin}">
+        <GroupBox Grid.Row="1" Header="監視間隔" Margin="0,0,0,15">
             <Grid Margin="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -155,9 +157,9 @@
                 <Slider Grid.Column="0"
                         x:Name="IntervalSlider"
                         Value="{Binding MonitorInterval}"
-                        Minimum="{x:Static local:MonitorConstants.MinMonitorInterval}"
-                        Maximum="{x:Static local:MonitorConstants.MaxMonitorInterval}"
-                        TickFrequency="{x:Static local:MonitorConstants.MonitorIntervalTickFrequency}"
+                        Minimum="100"
+                        Maximum="2000"
+                        TickFrequency="100"
                         IsSnapToTickEnabled="True"
                         Margin="0,0,10,0"/>
                 <TextBlock Grid.Column="1"
@@ -168,7 +170,7 @@
         </GroupBox>
 
         <!-- スタートアップ設定 -->
-        <GroupBox Grid.Row="2" Header="スタートアップ設定" Margin="0,0,0,{x:Static local:WindowConstants.GroupBoxMargin}">
+        <GroupBox Grid.Row="2" Header="スタートアップ設定" Margin="0,0,0,15">
             <CheckBox x:Name="StartupCheckBox"
                       Content="Windows起動時に自動でアプリを開始"
                       IsChecked="{Binding StartWithWindows}"
@@ -177,7 +179,7 @@
         </GroupBox>
 
         <!-- 状態表示 -->
-        <GroupBox Grid.Row="3" Header="アプリケーション状態" Margin="0,0,0,{x:Static local:WindowConstants.GroupBoxMargin}">
+        <GroupBox Grid.Row="3" Header="アプリケーション状態" Margin="0,0,0,15">
             <StackPanel Margin="10">
                 <TextBlock x:Name="StatusTextBlock"
                            Text="監視中..."
@@ -198,8 +200,8 @@
                     Margin="0,20,0,0">
             <Button Content="閉じる"
                     Click="Close_Click"
-                    Width="{x:Static local:WindowConstants.StandardButtonWidth}"
-                    Height="{x:Static local:WindowConstants.StandardButtonHeight}"
+                    Width="80"
+                    Height="25"
                     Style="{StaticResource ModernButton}"/>
         </StackPanel>
     </Grid>
