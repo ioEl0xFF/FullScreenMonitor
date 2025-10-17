@@ -46,8 +46,7 @@ namespace FullScreenMonitor.Models
         public bool IsValid()
         {
             return MonitorInterval >= MonitorConstants.MinMonitorInterval &&
-                   MonitorInterval <= MonitorConstants.MaxMonitorInterval &&
-                   TargetProcesses.Count > 0;
+                   MonitorInterval <= MonitorConstants.MaxMonitorInterval;
         }
     }
 }
