@@ -3,7 +3,9 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using FullScreenMonitor.Constants;
 using FullScreenMonitor.Helpers;
+using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
 using FullScreenMonitor.Services;
 using WinApplication = System.Windows.Application;
@@ -18,9 +20,12 @@ public partial class MainWindow : Window
     #region フィールド
 
     private NotifyIcon? _notifyIcon;
-    private WindowMonitorService? _monitorService;
+    private IWindowMonitorService? _monitorService;
     private AppSettings _currentSettings = AppSettings.GetDefault();
     private readonly object _lockObject = new();
+    private readonly ILogger _logger;
+    private readonly ISettingsManager _settingsManager;
+    private readonly IStartupManager _startupManager;
 
     #endregion
 
@@ -32,6 +37,17 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // サービスコンテナを設定
+        var container = new ServiceContainer();
+        container.RegisterSingleton<ILogger>(() => new FileLogger());
+        container.RegisterSingleton<ISettingsManager>(() => new SettingsManager(container.Resolve<ILogger>()));
+        container.RegisterSingleton<IStartupManager>(() => new StartupManager(container.Resolve<ILogger>()));
+
+        _logger = container.Resolve<ILogger>();
+        _settingsManager = container.Resolve<ISettingsManager>();
+        _startupManager = container.Resolve<IStartupManager>();
+
         InitializeApplication();
     }
 
@@ -46,6 +62,8 @@ public partial class MainWindow : Window
     {
         try
         {
+            _logger.LogInfo("アプリケーションを初期化中...");
+
             // 設定を読み込み
             LoadSettings();
 
@@ -57,11 +75,13 @@ public partial class MainWindow : Window
 
             // ウィンドウクローズイベントを設定
             Closing += Window_Closing;
+
+            _logger.LogInfo("アプリケーションの初期化が完了しました");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"初期化エラー: {ex.Message}");
-            System.Windows.MessageBox.Show($"アプリケーションの初期化中にエラーが発生しました:\n{ex.Message}",
+            _logger.LogError(ErrorMessages.ApplicationInitializationError, ex);
+            System.Windows.MessageBox.Show($"{ErrorMessages.ApplicationInitializationError}\n{ex.Message}",
                 "初期化エラー", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -74,7 +94,7 @@ public partial class MainWindow : Window
         _notifyIcon = new NotifyIcon
         {
             Icon = SystemIcons.Application, // Windows標準アイコンを使用
-            Text = "FullScreenMonitor - 全画面監視中",
+            Text = AppConstants.SystemTrayTextMonitoring,
             Visible = true
         };
 
@@ -106,7 +126,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitializeMonitorService()
     {
-        _monitorService = new WindowMonitorService(_currentSettings);
+        _monitorService = new WindowMonitorService(_currentSettings, _logger);
 
         // イベントハンドラーを設定
         _monitorService.MonitoringStateChanged += OnMonitoringStateChanged;
@@ -172,8 +192,8 @@ public partial class MainWindow : Window
         if (_notifyIcon != null)
         {
             _notifyIcon.Text = isMonitoring ?
-                "FullScreenMonitor - 監視中" :
-                "FullScreenMonitor - 停止中";
+                AppConstants.SystemTrayTextMonitoring :
+                AppConstants.SystemTrayTextStopped;
         }
     }
 
@@ -184,7 +204,7 @@ public partial class MainWindow : Window
     {
         if (_notifyIcon != null)
         {
-            _notifyIcon.ShowBalloonTip(3000, "FullScreenMonitor",
+            _notifyIcon.ShowBalloonTip(WindowConstants.BalloonTipInfoDuration, WindowConstants.BalloonTipTitle,
                 $"{count}個のウィンドウを最小化しました。", ToolTipIcon.Info);
         }
     }
@@ -196,7 +216,7 @@ public partial class MainWindow : Window
     {
         if (_notifyIcon != null)
         {
-            _notifyIcon.ShowBalloonTip(3000, "FullScreenMonitor",
+            _notifyIcon.ShowBalloonTip(WindowConstants.BalloonTipInfoDuration, WindowConstants.BalloonTipTitle,
                 $"{count}個のウィンドウを復元しました。", ToolTipIcon.Info);
         }
     }
@@ -208,7 +228,7 @@ public partial class MainWindow : Window
     {
         if (_notifyIcon != null)
         {
-            _notifyIcon.ShowBalloonTip(5000, "FullScreenMonitor - エラー",
+            _notifyIcon.ShowBalloonTip(WindowConstants.BalloonTipErrorDuration, WindowConstants.BalloonTipErrorTitle,
                 errorMessage, ToolTipIcon.Error);
         }
     }
@@ -254,7 +274,7 @@ public partial class MainWindow : Window
 
                 if (_notifyIcon != null)
                 {
-                    _notifyIcon.ShowBalloonTip(3000, "FullScreenMonitor",
+                    _notifyIcon.ShowBalloonTip(WindowConstants.BalloonTipInfoDuration, WindowConstants.BalloonTipTitle,
                         "設定を保存しました。", ToolTipIcon.Info);
                 }
             }
@@ -277,7 +297,7 @@ public partial class MainWindow : Window
     {
         lock (_lockObject)
         {
-            _currentSettings = SettingsManager.LoadSettings();
+            _currentSettings = _settingsManager.LoadSettings();
         }
     }
 

@@ -2,51 +2,73 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using FullScreenMonitor.Constants;
+using FullScreenMonitor.Exceptions;
+using FullScreenMonitor.Interfaces;
 
 namespace FullScreenMonitor.Helpers
 {
     /// <summary>
     /// プロセス操作ヘルパークラス
     /// </summary>
-    public static class ProcessHelper
+    public class ProcessHelper
     {
+        #region フィールド
+
+        private readonly ILogger _logger;
+
+        #endregion
+
+        #region コンストラクタ
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        /// <param name="logger">ロガー</param>
+        public ProcessHelper(ILogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        #endregion
+
         #region パブリックメソッド
 
         /// <summary>
         /// 現在稼働中のウィンドウを持つプロセスを取得
         /// </summary>
         /// <returns>プロセス情報のリスト</returns>
-        public static List<ProcessInfo> GetProcessesWithWindows()
+        public List<ProcessInfo> GetProcessesWithWindows()
         {
             var processInfos = new Dictionary<string, ProcessInfo>();
 
             try
             {
-                NativeMethods.EnumWindows((hWnd, lParam) =>
+                NativeMethods.EnumWindows((windowHandle, lParam) =>
                 {
                     try
                     {
                         // ウィンドウが可視でない場合はスキップ
-                        if (!NativeMethods.IsWindowVisible(hWnd))
+                        if (!NativeMethods.IsWindowVisible(windowHandle))
                         {
                             return true;
                         }
 
                         // システムウィンドウは除外
-                        if (NativeMethods.IsSystemWindow(hWnd))
+                        if (NativeMethods.IsSystemWindow(windowHandle))
                         {
                             return true;
                         }
 
                         // ウィンドウタイトルを取得
-                        var windowTitle = NativeMethods.GetWindowTitle(hWnd);
+                        var windowTitle = NativeMethods.GetWindowTitle(windowHandle);
                         if (string.IsNullOrEmpty(windowTitle))
                         {
                             return true;
                         }
 
                         // プロセスIDを取得
-                        if (NativeMethods.GetWindowThreadProcessId(hWnd, out uint processId) == 0)
+                        if (NativeMethods.GetWindowThreadProcessId(windowHandle, out uint processId) == 0)
                         {
                             return true;
                         }
@@ -69,9 +91,9 @@ namespace FullScreenMonitor.Helpers
                             };
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // エラーが発生した場合はスキップ
+                        _logger.LogWarning($"プロセス情報取得中にエラーが発生しました: {ex.Message}", ex);
                     }
 
                     return true; // 次のウィンドウをチェック
@@ -79,7 +101,8 @@ namespace FullScreenMonitor.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"プロセス取得エラー: {ex.Message}");
+                _logger.LogError(ErrorMessages.ProcessInfoGetError, ex);
+                throw new MonitoringException(ErrorMessages.ProcessInfoGetError, ex);
             }
 
             // リストに変換してソート
@@ -93,7 +116,7 @@ namespace FullScreenMonitor.Helpers
         /// </summary>
         /// <param name="processName">プロセス名</param>
         /// <returns>実行中の場合true</returns>
-        public static bool IsProcessRunning(string processName)
+        public bool IsProcessRunning(string processName)
         {
             if (string.IsNullOrEmpty(processName))
             {
@@ -116,7 +139,7 @@ namespace FullScreenMonitor.Helpers
         /// </summary>
         /// <param name="processName">プロセス名</param>
         /// <returns>実行ファイル名、見つからない場合はnull</returns>
-        public static string? GetProcessExecutablePath(string processName)
+        public string? GetProcessExecutablePath(string processName)
         {
             if (string.IsNullOrEmpty(processName))
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using FullScreenMonitor.Constants;
 
 namespace FullScreenMonitor.Helpers
 {
@@ -227,44 +228,50 @@ namespace FullScreenMonitor.Helpers
         /// <summary>
         /// ウィンドウのタイトルを取得
         /// </summary>
-        public static string GetWindowTitle(IntPtr hWnd)
+        /// <param name="windowHandle">ウィンドウハンドル</param>
+        /// <returns>ウィンドウタイトル</returns>
+        public static string GetWindowTitle(IntPtr windowHandle)
         {
-            var length = GetWindowTextLength(hWnd);
+            var length = GetWindowTextLength(windowHandle);
             if (length == 0)
                 return string.Empty;
 
             var builder = new StringBuilder(length + 1);
-            GetWindowText(hWnd, builder, builder.Capacity);
+            GetWindowText(windowHandle, builder, builder.Capacity);
             return builder.ToString();
         }
 
         /// <summary>
         /// ウィンドウのクラス名を取得
         /// </summary>
-        public static string GetWindowClassName(IntPtr hWnd)
+        /// <param name="windowHandle">ウィンドウハンドル</param>
+        /// <returns>ウィンドウクラス名</returns>
+        public static string GetWindowClassName(IntPtr windowHandle)
         {
-            var builder = new StringBuilder(256);
-            GetClassName(hWnd, builder, builder.Capacity);
+            var builder = new StringBuilder(MonitorConstants.MaxClassNameLength);
+            GetClassName(windowHandle, builder, builder.Capacity);
             return builder.ToString();
         }
 
         /// <summary>
         /// プロセス名を取得
         /// </summary>
+        /// <param name="processId">プロセスID</param>
+        /// <returns>プロセス名（小文字）</returns>
         public static string GetProcessName(uint processId)
         {
             try
             {
-                var hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, processId);
-                if (hProcess == IntPtr.Zero)
+                var processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, processId);
+                if (processHandle == IntPtr.Zero)
                     return string.Empty;
 
-                var builder = new StringBuilder(1024);
+                var builder = new StringBuilder(MonitorConstants.MaxProcessPathLength);
                 var size = (uint)builder.Capacity;
-                var result = QueryFullProcessImageName(hProcess, 0, builder, ref size);
-                
-                CloseHandle(hProcess);
-                
+                var result = QueryFullProcessImageName(processHandle, 0, builder, ref size);
+
+                CloseHandle(processHandle);
+
                 if (result != 0)
                 {
                     var fullPath = builder.ToString();
@@ -282,19 +289,23 @@ namespace FullScreenMonitor.Helpers
         /// <summary>
         /// ツールウィンドウかどうかを判定
         /// </summary>
-        public static bool IsToolWindow(IntPtr hWnd)
+        /// <param name="windowHandle">ウィンドウハンドル</param>
+        /// <returns>ツールウィンドウの場合true</returns>
+        public static bool IsToolWindow(IntPtr windowHandle)
         {
-            var exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+            var exStyle = GetWindowLong(windowHandle, GWL_EXSTYLE);
             return (exStyle & WS_EX_TOOLWINDOW) != 0;
         }
 
         /// <summary>
         /// システムウィンドウかどうかを判定
         /// </summary>
-        public static bool IsSystemWindow(IntPtr hWnd)
+        /// <param name="windowHandle">ウィンドウハンドル</param>
+        /// <returns>システムウィンドウの場合true</returns>
+        public static bool IsSystemWindow(IntPtr windowHandle)
         {
-            var className = GetWindowClassName(hWnd);
-            var title = GetWindowTitle(hWnd);
+            var className = GetWindowClassName(windowHandle);
+            var title = GetWindowTitle(windowHandle);
 
             // システムウィンドウのクラス名やタイトルをチェック
             var systemClasses = new[]
@@ -308,9 +319,9 @@ namespace FullScreenMonitor.Helpers
                 "Shell_SecondaryTrayWnd" // セカンダリタスクバー
             };
 
-            return systemClasses.Contains(className) || 
+            return systemClasses.Contains(className) ||
                    string.IsNullOrEmpty(title) ||
-                   IsToolWindow(hWnd);
+                   IsToolWindow(windowHandle);
         }
 
         #endregion

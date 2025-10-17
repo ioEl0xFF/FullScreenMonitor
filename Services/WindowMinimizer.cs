@@ -1,19 +1,36 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FullScreenMonitor.Constants;
+using FullScreenMonitor.Exceptions;
 using FullScreenMonitor.Helpers;
+using FullScreenMonitor.Interfaces;
 
 namespace FullScreenMonitor.Services
 {
     /// <summary>
     /// ウィンドウ最小化サービス
     /// </summary>
-    public class WindowMinimizer
+    public class WindowMinimizer : IWindowMinimizer
     {
         #region フィールド
 
         private readonly List<IntPtr> _minimizedWindows = new();
         private readonly object _lockObject = new();
+        private readonly ILogger _logger;
+
+        #endregion
+
+        #region コンストラクタ
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        /// <param name="logger">ロガー</param>
+        public WindowMinimizer(ILogger? logger = null)
+        {
+            _logger = logger ?? new Services.ConsoleLogger();
+        }
 
         #endregion
 
@@ -35,7 +52,7 @@ namespace FullScreenMonitor.Services
                 try
                 {
                     var windowsOnMonitor = GetWindowsOnMonitor(monitorHandle, excludeWindow);
-                    
+
                     foreach (var hWnd in windowsOnMonitor)
                     {
                         if (NativeMethods.ShowWindow(hWnd, NativeMethods.SW_MINIMIZE))
@@ -47,7 +64,8 @@ namespace FullScreenMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"ウィンドウ最小化エラー: {ex.Message}");
+                    _logger.LogError(ErrorMessages.WindowMinimizeError, ex);
+                    throw new WindowOperationException(ErrorMessages.WindowMinimizeError, IntPtr.Zero, ex);
                 }
 
                 return minimizedCount;
@@ -80,7 +98,8 @@ namespace FullScreenMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"ウィンドウ復元エラー: {ex.Message}");
+                    _logger.LogError(ErrorMessages.WindowRestoreError, ex);
+                    throw new WindowOperationException(ErrorMessages.WindowRestoreError, IntPtr.Zero, ex);
                 }
                 finally
                 {
@@ -130,30 +149,30 @@ namespace FullScreenMonitor.Services
         {
             var windows = new List<IntPtr>();
 
-            NativeMethods.EnumWindows((hWnd, lParam) =>
+            NativeMethods.EnumWindows((windowHandle, lParam) =>
             {
                 try
                 {
                     // 除外ウィンドウかチェック
-                    if (hWnd == excludeWindow)
+                    if (windowHandle == excludeWindow)
                     {
                         return true;
                     }
 
                     // ウィンドウが可視でない場合はスキップ
-                    if (!NativeMethods.IsWindowVisible(hWnd))
+                    if (!NativeMethods.IsWindowVisible(windowHandle))
                     {
                         return true;
                     }
 
                     // システムウィンドウは除外
-                    if (NativeMethods.IsSystemWindow(hWnd))
+                    if (NativeMethods.IsSystemWindow(windowHandle))
                     {
                         return true;
                     }
 
                     // ウィンドウが指定モニター上にあるかチェック
-                    var windowMonitor = NativeMethods.MonitorFromWindow(hWnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
+                    var windowMonitor = NativeMethods.MonitorFromWindow(windowHandle, NativeMethods.MONITOR_DEFAULTTONEAREST);
                     if (windowMonitor != monitorHandle)
                     {
                         return true;
@@ -161,7 +180,7 @@ namespace FullScreenMonitor.Services
 
                     // ウィンドウが最小化されていないかチェック
                     var placement = new NativeMethods.WINDOWPLACEMENT();
-                    if (NativeMethods.GetWindowPlacement(hWnd, ref placement))
+                    if (NativeMethods.GetWindowPlacement(windowHandle, ref placement))
                     {
                         if (placement.ShowCmd == NativeMethods.SW_SHOWMINIMIZED)
                         {
@@ -169,11 +188,11 @@ namespace FullScreenMonitor.Services
                         }
                     }
 
-                    windows.Add(hWnd);
+                    windows.Add(windowHandle);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // エラーが発生した場合はスキップ
+                    _logger.LogDebug($"ウィンドウ取得中にエラーが発生しました: {ex.Message}");
                 }
 
                 return true; // 次のウィンドウをチェック

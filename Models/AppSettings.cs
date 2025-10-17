@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using FullScreenMonitor.Constants;
 
 namespace FullScreenMonitor.Models
 {
@@ -33,8 +34,8 @@ namespace FullScreenMonitor.Models
         {
             return new AppSettings
             {
-                TargetProcesses = new List<string> { "chrome", "firefox", "msedge" },
-                MonitorInterval = 500,
+                TargetProcesses = new List<string>(MonitorConstants.DefaultTargetProcesses),
+                MonitorInterval = MonitorConstants.DefaultMonitorInterval,
                 StartWithWindows = false
             };
         }
@@ -44,8 +45,8 @@ namespace FullScreenMonitor.Models
         /// </summary>
         public bool IsValid()
         {
-            return MonitorInterval >= 100 && 
-                   MonitorInterval <= 2000 && 
+            return MonitorInterval >= MonitorConstants.MinMonitorInterval &&
+                   MonitorInterval <= MonitorConstants.MaxMonitorInterval &&
                    TargetProcesses.Count > 0;
         }
     }

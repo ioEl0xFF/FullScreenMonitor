@@ -4,8 +4,12 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using FullScreenMonitor.Constants;
+using FullScreenMonitor.Exceptions;
 using FullScreenMonitor.Helpers;
+using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
+using FullScreenMonitor.Services;
 
 namespace FullScreenMonitor
 {
@@ -14,6 +18,15 @@ namespace FullScreenMonitor
     /// </summary>
     public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
+        #region フィールド
+
+        private readonly ILogger _logger;
+        private readonly ISettingsManager _settingsManager;
+        private readonly IStartupManager _startupManager;
+        private readonly ProcessHelper _processHelper;
+
+        #endregion
+
         #region プロパティ
 
         private ObservableCollection<string> _targetProcesses = new();
@@ -85,6 +98,13 @@ namespace FullScreenMonitor
         {
             InitializeComponent();
             DataContext = this;
+
+            // サービスを初期化
+            _logger = new FileLogger();
+            _settingsManager = new SettingsManager(_logger);
+            _startupManager = new StartupManager(_logger);
+            _processHelper = new ProcessHelper(_logger);
+
             LoadRunningProcesses();
             Closing += Window_Closing;
         }
@@ -100,7 +120,7 @@ namespace FullScreenMonitor
         {
             if (string.IsNullOrWhiteSpace(NewProcessName))
             {
-                System.Windows.MessageBox.Show("プロセス名を入力してください。", "入力エラー",
+                System.Windows.MessageBox.Show(ErrorMessages.ProcessNameInputError, "入力エラー",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -109,7 +129,7 @@ namespace FullScreenMonitor
 
             if (TargetProcesses.Contains(processName))
             {
-                System.Windows.MessageBox.Show("このプロセスは既に追加されています。", "重複エラー",
+                System.Windows.MessageBox.Show(ErrorMessages.ProcessNameDuplicateError, "重複エラー",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -130,7 +150,7 @@ namespace FullScreenMonitor
 
             if (selectedItems.Count == 0)
             {
-                System.Windows.MessageBox.Show("削除するプロセスを選択してください。", "選択エラー",
+                System.Windows.MessageBox.Show(ErrorMessages.ProcessSelectionError, "選択エラー",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -233,7 +253,7 @@ namespace FullScreenMonitor
             MonitorInterval = settings.MonitorInterval;
 
             // 現在のスタートアップ登録状態を取得
-            StartWithWindows = StartupManager.IsRegistered();
+            StartWithWindows = _startupManager.IsRegistered();
         }
 
         /// <summary>
@@ -270,31 +290,32 @@ namespace FullScreenMonitor
             try
             {
                 // 設定の検証
-                if (MonitorInterval < 100 || MonitorInterval > 2000)
+                if (MonitorInterval < MonitorConstants.MinMonitorInterval || MonitorInterval > MonitorConstants.MaxMonitorInterval)
                 {
-                    System.Windows.MessageBox.Show("監視間隔は100ms〜2000msの範囲で設定してください。", "設定エラー",
+                    System.Windows.MessageBox.Show(string.Format(ErrorMessages.MonitorIntervalRangeError,
+                        MonitorConstants.MinMonitorInterval, MonitorConstants.MaxMonitorInterval), "設定エラー",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 // スタートアップ設定の変更を処理
-                var originalStartWithWindows = StartupManager.IsRegistered();
+                var originalStartWithWindows = _startupManager.IsRegistered();
                 if (StartWithWindows != originalStartWithWindows)
                 {
                     if (StartWithWindows)
                     {
-                        if (!StartupManager.Register())
+                        if (!_startupManager.Register())
                         {
-                            System.Windows.MessageBox.Show("スタートアップ登録に失敗しました。", "エラー",
+                            System.Windows.MessageBox.Show(ErrorMessages.StartupRegistrationError, "エラー",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
                     }
                     else
                     {
-                        if (!StartupManager.Unregister())
+                        if (!_startupManager.Unregister())
                         {
-                            System.Windows.MessageBox.Show("スタートアップ解除に失敗しました。", "エラー",
+                            System.Windows.MessageBox.Show(ErrorMessages.StartupUnregistrationError, "エラー",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                             return;
                         }
@@ -303,9 +324,9 @@ namespace FullScreenMonitor
 
                 // 設定を保存
                 var settings = GetSettings();
-                if (!SettingsManager.SaveSettings(settings))
+                if (!_settingsManager.SaveSettings(settings))
                 {
-                    System.Windows.MessageBox.Show("設定の保存に失敗しました。", "エラー",
+                    System.Windows.MessageBox.Show(ErrorMessages.SettingsSaveError, "エラー",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -324,7 +345,7 @@ namespace FullScreenMonitor
         {
             try
             {
-                var processes = ProcessHelper.GetProcessesWithWindows();
+                var processes = _processHelper.GetProcessesWithWindows();
                 RunningProcesses.Clear();
 
                 foreach (var process in processes)
@@ -334,8 +355,8 @@ namespace FullScreenMonitor
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"プロセス読み込みエラー: {ex.Message}");
-                System.Windows.MessageBox.Show($"実行中プロセスの取得中にエラーが発生しました:\n{ex.Message}",
+                _logger.LogError(ErrorMessages.ProcessListUpdateError, ex);
+                System.Windows.MessageBox.Show($"{ErrorMessages.ProcessListUpdateError}\n{ex.Message}",
                     "エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Windows.Threading;
+using FullScreenMonitor.Constants;
+using FullScreenMonitor.Exceptions;
 using FullScreenMonitor.Helpers;
+using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
 
 namespace FullScreenMonitor.Services
@@ -9,13 +12,14 @@ namespace FullScreenMonitor.Services
     /// <summary>
     /// ウィンドウ監視サービス統合クラス
     /// </summary>
-    public class WindowMonitorService : IDisposable
+    public class WindowMonitorService : IWindowMonitorService
     {
         #region フィールド
 
-        private FullScreenDetector? _detector;
-        private readonly WindowMinimizer _minimizer;
+        private IFullScreenDetector? _detector;
+        private readonly IWindowMinimizer _minimizer;
         private readonly object _lockObject = new();
+        private readonly ILogger _logger;
         private bool _disposed = false;
 
         #endregion
@@ -69,10 +73,12 @@ namespace FullScreenMonitor.Services
         /// コンストラクタ
         /// </summary>
         /// <param name="settings">初期設定</param>
-        public WindowMonitorService(AppSettings settings)
+        /// <param name="logger">ロガー</param>
+        public WindowMonitorService(AppSettings settings, ILogger? logger = null)
         {
             CurrentSettings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _minimizer = new WindowMinimizer();
+            _logger = logger ?? new Services.ConsoleLogger();
+            _minimizer = new WindowMinimizer(_logger);
         }
 
         #endregion
@@ -93,16 +99,18 @@ namespace FullScreenMonitor.Services
 
                 try
                 {
-                    _detector = new FullScreenDetector(CurrentSettings.TargetProcesses, CurrentSettings.MonitorInterval);
+                    _detector = new FullScreenDetector(CurrentSettings.TargetProcesses, CurrentSettings.MonitorInterval, _logger);
                     _detector.FullScreenStateChanged += Detector_FullScreenStateChanged;
                     _detector.StartMonitoring();
 
                     IsMonitoring = true;
+                    _logger.LogInfo("監視を開始しました");
                     MonitoringStateChanged?.Invoke(this, true);
                 }
                 catch (Exception ex)
                 {
-                    ErrorOccurred?.Invoke(this, $"監視開始エラー: {ex.Message}");
+                    _logger.LogError(ErrorMessages.MonitoringStartError, ex);
+                    ErrorOccurred?.Invoke(this, ErrorMessages.MonitoringStartError);
                 }
             }
         }
@@ -129,15 +137,18 @@ namespace FullScreenMonitor.Services
                     if (_minimizer.MinimizedWindowCount > 0)
                     {
                         var restoredCount = _minimizer.RestoreMinimizedWindows();
+                        _logger.LogInfo($"{restoredCount}個のウィンドウを復元しました");
                         WindowsRestored?.Invoke(this, restoredCount);
                     }
 
                     IsMonitoring = false;
+                    _logger.LogInfo("監視を停止しました");
                     MonitoringStateChanged?.Invoke(this, false);
                 }
                 catch (Exception ex)
                 {
-                    ErrorOccurred?.Invoke(this, $"監視停止エラー: {ex.Message}");
+                    _logger.LogError(ErrorMessages.MonitoringStopError, ex);
+                    ErrorOccurred?.Invoke(this, ErrorMessages.MonitoringStopError);
                 }
             }
         }
@@ -217,26 +228,31 @@ namespace FullScreenMonitor.Services
 
                 if (e.IsFullScreen)
                 {
+                    _logger.LogInfo($"全画面状態を検出: {e.ProcessName} ({e.WindowTitle})");
                     // 全画面になった場合：同一モニター上のウィンドウを最小化
                     var minimizedCount = _minimizer.MinimizeWindowsOnMonitor(e.MonitorHandle, e.WindowHandle);
                     if (minimizedCount > 0)
                     {
+                        _logger.LogInfo($"{minimizedCount}個のウィンドウを最小化しました");
                         WindowsMinimized?.Invoke(this, minimizedCount);
                     }
                 }
                 else
                 {
+                    _logger.LogInfo("全画面状態が解除されました");
                     // 全画面が解除された場合：最小化したウィンドウを復元
                     var restoredCount = _minimizer.RestoreMinimizedWindows();
                     if (restoredCount > 0)
                     {
+                        _logger.LogInfo($"{restoredCount}個のウィンドウを復元しました");
                         WindowsRestored?.Invoke(this, restoredCount);
                     }
                 }
             }
             catch (Exception ex)
             {
-                ErrorOccurred?.Invoke(this, $"全画面状態変更処理エラー: {ex.Message}");
+                _logger.LogError("全画面状態変更処理中にエラーが発生しました", ex);
+                ErrorOccurred?.Invoke(this, "全画面状態変更処理中にエラーが発生しました");
             }
         }
 
@@ -273,34 +289,4 @@ namespace FullScreenMonitor.Services
         #endregion
     }
 
-    /// <summary>
-    /// 監視統計情報
-    /// </summary>
-    public class MonitoringStats
-    {
-        /// <summary>
-        /// 監視中かどうか
-        /// </summary>
-        public bool IsMonitoring { get; set; }
-
-        /// <summary>
-        /// 最後にチェックした時刻
-        /// </summary>
-        public DateTime LastCheckTime { get; set; }
-
-        /// <summary>
-        /// 最小化されたウィンドウ数
-        /// </summary>
-        public int MinimizedWindowCount { get; set; }
-
-        /// <summary>
-        /// 監視対象プロセス数
-        /// </summary>
-        public int TargetProcessCount { get; set; }
-
-        /// <summary>
-        /// 監視間隔（ミリ秒）
-        /// </summary>
-        public int MonitorInterval { get; set; }
-    }
 }

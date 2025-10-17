@@ -1,6 +1,9 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using FullScreenMonitor.Constants;
+using FullScreenMonitor.Exceptions;
+using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
 
 namespace FullScreenMonitor.Helpers
@@ -8,15 +11,32 @@ namespace FullScreenMonitor.Helpers
     /// <summary>
     /// 設定ファイル管理クラス
     /// </summary>
-    public static class SettingsManager
+    public class SettingsManager : ISettingsManager
     {
-        #region 定数
+        #region フィールド
 
-        private static readonly string SettingsDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-            "FullScreenMonitor");
+        private readonly ILogger _logger;
+        private readonly string _settingsDirectory;
+        private readonly string _settingsFilePath;
 
-        private static readonly string SettingsFilePath = Path.Combine(SettingsDirectory, "settings.json");
+        #endregion
+
+        #region コンストラクタ
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        /// <param name="logger">ロガー</param>
+        public SettingsManager(ILogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _settingsDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                AppConstants.SettingsDirectoryName);
+
+            _settingsFilePath = Path.Combine(_settingsDirectory, AppConstants.SettingsFileName);
+        }
 
         #endregion
 
@@ -25,41 +45,43 @@ namespace FullScreenMonitor.Helpers
         /// <summary>
         /// 設定を読み込み
         /// </summary>
-        public static AppSettings LoadSettings()
+        public AppSettings LoadSettings()
         {
             try
             {
-                if (!File.Exists(SettingsFilePath))
+                if (!File.Exists(_settingsFilePath))
                 {
+                    _logger.LogInfo("設定ファイルが存在しません。デフォルト設定を作成します。");
                     // 設定ファイルが存在しない場合はデフォルト設定を作成
                     var defaultSettings = AppSettings.GetDefault();
                     SaveSettings(defaultSettings);
                     return defaultSettings;
                 }
 
-                var json = File.ReadAllText(SettingsFilePath);
+                var json = File.ReadAllText(_settingsFilePath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json);
-                
+
                 if (settings == null || !settings.IsValid())
                 {
+                    _logger.LogWarning("設定ファイルが無効です。デフォルト設定を使用します。");
                     // 設定が無効な場合はデフォルト設定を返す
                     return AppSettings.GetDefault();
                 }
 
+                _logger.LogInfo("設定を正常に読み込みました。");
                 return settings;
             }
             catch (Exception ex)
             {
-                // エラーが発生した場合はデフォルト設定を返す
-                System.Diagnostics.Debug.WriteLine($"設定読み込みエラー: {ex.Message}");
-                return AppSettings.GetDefault();
+                _logger.LogError(ErrorMessages.SettingsLoadError, ex);
+                throw new SettingsException(ErrorMessages.SettingsLoadError, ex);
             }
         }
 
         /// <summary>
         /// 設定を保存
         /// </summary>
-        public static bool SaveSettings(AppSettings settings)
+        public bool SaveSettings(AppSettings settings)
         {
             try
             {
@@ -68,10 +90,16 @@ namespace FullScreenMonitor.Helpers
                     throw new ArgumentNullException(nameof(settings));
                 }
 
-                // 設定ディレクトリが存在しない場合は作成
-                if (!Directory.Exists(SettingsDirectory))
+                if (!settings.IsValid())
                 {
-                    Directory.CreateDirectory(SettingsDirectory);
+                    throw new ArgumentException(ErrorMessages.SettingsValidationError, nameof(settings));
+                }
+
+                // 設定ディレクトリが存在しない場合は作成
+                if (!Directory.Exists(_settingsDirectory))
+                {
+                    Directory.CreateDirectory(_settingsDirectory);
+                    _logger.LogInfo($"設定ディレクトリを作成しました: {_settingsDirectory}");
                 }
 
                 // JSONシリアライズオプション
@@ -82,59 +110,61 @@ namespace FullScreenMonitor.Helpers
                 };
 
                 var json = JsonSerializer.Serialize(settings, options);
-                File.WriteAllText(SettingsFilePath, json);
+                File.WriteAllText(_settingsFilePath, json);
 
+                _logger.LogInfo("設定を正常に保存しました。");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"設定保存エラー: {ex.Message}");
-                return false;
+                _logger.LogError(ErrorMessages.SettingsSaveError, ex);
+                throw new SettingsException(ErrorMessages.SettingsSaveError, ex);
             }
         }
 
         /// <summary>
         /// 設定ファイルの存在確認
         /// </summary>
-        public static bool SettingsFileExists()
+        public bool SettingsFileExists()
         {
-            return File.Exists(SettingsFilePath);
+            return File.Exists(_settingsFilePath);
         }
 
         /// <summary>
         /// 設定ファイルを削除
         /// </summary>
-        public static bool DeleteSettingsFile()
+        public bool DeleteSettingsFile()
         {
             try
             {
-                if (File.Exists(SettingsFilePath))
+                if (File.Exists(_settingsFilePath))
                 {
-                    File.Delete(SettingsFilePath);
+                    File.Delete(_settingsFilePath);
+                    _logger.LogInfo("設定ファイルを削除しました。");
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"設定ファイル削除エラー: {ex.Message}");
-                return false;
+                _logger.LogError(ErrorMessages.SettingsDeleteError, ex);
+                throw new SettingsException(ErrorMessages.SettingsDeleteError, ex);
             }
         }
 
         /// <summary>
         /// 設定ディレクトリのパスを取得
         /// </summary>
-        public static string GetSettingsDirectoryPath()
+        public string GetSettingsDirectoryPath()
         {
-            return SettingsDirectory;
+            return _settingsDirectory;
         }
 
         /// <summary>
         /// 設定ファイルのパスを取得
         /// </summary>
-        public static string GetSettingsFilePath()
+        public string GetSettingsFilePath()
         {
-            return SettingsFilePath;
+            return _settingsFilePath;
         }
 
         #endregion
