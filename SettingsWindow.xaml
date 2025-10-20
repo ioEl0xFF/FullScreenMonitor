@@ -76,6 +76,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -195,7 +196,7 @@
         </GroupBox>
 
         <!-- 状態表示 -->
-        <GroupBox Grid.Row="5" Header="アプリケーション状態" Margin="0,0,0,20">
+        <GroupBox Grid.Row="6" Header="アプリケーション状態" Margin="0,0,0,20">
             <StackPanel Margin="10">
                 <TextBlock x:Name="StatusTextBlock"
                            Text="監視中..."
@@ -206,11 +207,21 @@
                            Margin="0,5,0,0"
                            FontSize="10"
                            Foreground="#FF666666"/>
+                <TextBlock x:Name="MinimizedWindowCountTextBlock"
+                           Text="最小化ウィンドウ: 0個"
+                           Margin="0,5,0,0"
+                           FontSize="10"
+                           Foreground="#FF666666"/>
+                <TextBlock x:Name="TargetProcessCountTextBlock"
+                           Text="対象プロセス: 0個"
+                           Margin="0,5,0,0"
+                           FontSize="10"
+                           Foreground="#FF666666"/>
             </StackPanel>
         </GroupBox>
 
         <!-- ボタン -->
-        <StackPanel Grid.Row="6"
+        <StackPanel Grid.Row="7"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Margin="0,15,0,20">

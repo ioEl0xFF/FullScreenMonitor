@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using FullScreenMonitor.Constants;
 using FullScreenMonitor.Exceptions;
 using FullScreenMonitor.Helpers;
@@ -24,6 +25,8 @@ namespace FullScreenMonitor
         private readonly ISettingsManager _settingsManager;
         private readonly IStartupManager _startupManager;
         private readonly ProcessHelper _processHelper;
+        private DispatcherTimer? _statusUpdateTimer;
+        private IWindowMonitorService? _monitorService;
 
         #endregion
 
@@ -130,6 +133,13 @@ namespace FullScreenMonitor
 
             LoadRunningProcesses();
             Closing += Window_Closing;
+
+            // 状態更新タイマーを初期化
+            _statusUpdateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _statusUpdateTimer.Tick += StatusUpdateTimer_Tick;
         }
 
         #endregion
@@ -250,6 +260,9 @@ namespace FullScreenMonitor
         /// </summary>
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            // タイマー停止
+            _statusUpdateTimer?.Stop();
+
             // DialogResultが設定されていない場合（Xボタンなどで閉じられた場合）は設定を保存
             if (DialogResult != true)
             {
@@ -271,7 +284,7 @@ namespace FullScreenMonitor
         /// <summary>
         /// 設定を読み込み
         /// </summary>
-        public void LoadSettings(Models.AppSettings settings)
+        public void LoadSettings(Models.AppSettings settings, IWindowMonitorService? monitorService = null)
         {
             TargetProcesses.Clear();
             foreach (var process in settings.TargetProcesses)
@@ -287,6 +300,18 @@ namespace FullScreenMonitor
             // 復元設定を読み込み
             RestoreOnSettingsClosed = settings.RestoreOnSettingsClosed;
             RestoreOnAppExit = settings.RestoreOnAppExit;
+
+            // 監視サービスを設定
+            _monitorService = monitorService;
+
+            // デバッグ用：初期表示を強制実行
+            UpdateStatus("初期化中...", "--", 0, 0);
+
+            // 状態を初期表示
+            UpdateApplicationStatus();
+
+            // タイマー開始
+            _statusUpdateTimer?.Start();
         }
 
         /// <summary>
@@ -307,10 +332,22 @@ namespace FullScreenMonitor
         /// <summary>
         /// ステータスを更新
         /// </summary>
-        public void UpdateStatus(string status, string lastCheck)
+        public void UpdateStatus(string status, string lastCheck, int minimizedCount, int targetProcessCount)
         {
-            StatusTextBlock.Text = status;
-            LastCheckTextBlock.Text = $"最終チェック: {lastCheck}";
+            try
+            {
+                StatusTextBlock.Text = status;
+                LastCheckTextBlock.Text = $"最終チェック: {lastCheck}";
+                MinimizedWindowCountTextBlock.Text = $"最小化ウィンドウ: {minimizedCount}個";
+                TargetProcessCountTextBlock.Text = $"対象プロセス: {targetProcessCount}個";
+
+                // デバッグ用：コンソールに出力
+                System.Diagnostics.Debug.WriteLine($"UpdateStatus called: {status}, {lastCheck}, {minimizedCount}, {targetProcessCount}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateStatus error: {ex.Message}");
+            }
         }
 
         #endregion
@@ -402,6 +439,35 @@ namespace FullScreenMonitor
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// タイマーイベントハンドラー
+        /// </summary>
+        private void StatusUpdateTimer_Tick(object? sender, EventArgs e)
+        {
+            UpdateApplicationStatus();
+        }
+
+        /// <summary>
+        /// アプリケーション状態を更新
+        /// </summary>
+        private void UpdateApplicationStatus()
+        {
+            if (_monitorService != null)
+            {
+                var stats = _monitorService.GetStats();
+                var status = stats.IsMonitoring ? "監視中" : "停止中";
+                var lastCheck = stats.LastCheckTime != DateTime.MinValue
+                    ? stats.LastCheckTime.ToString("HH:mm:ss")
+                    : "--";
+                UpdateStatus(status, lastCheck, stats.MinimizedWindowCount, stats.TargetProcessCount);
+            }
+            else
+            {
+                // デバッグ用：監視サービスがnullの場合の表示
+                UpdateStatus("監視サービス未接続", "--", 0, 0);
+            }
         }
 
         #endregion

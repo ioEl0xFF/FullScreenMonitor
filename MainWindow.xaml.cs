@@ -272,7 +272,7 @@ public partial class MainWindow : Window
         try
         {
             var settingsWindow = new SettingsWindow();
-            settingsWindow.LoadSettings(_currentSettings);
+            settingsWindow.LoadSettings(_currentSettings, _monitorService);
 
             // 設定画面を閉じた時の復元処理を設定
             settingsWindow.OnSettingsClosed += () =>
