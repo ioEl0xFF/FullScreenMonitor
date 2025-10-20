@@ -91,9 +91,36 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitializeNotifyIcon()
     {
+        Icon customIcon;
+        
+        try
+        {
+            // 出力ディレクトリからアイコンファイルを読み込み
+            var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "app.ico");
+            _logger.LogInfo($"アイコンファイルパス: {iconPath}");
+            
+            if (System.IO.File.Exists(iconPath))
+            {
+                customIcon = new Icon(iconPath);
+                _logger.LogInfo("アイコンを正常に読み込みました");
+            }
+            else
+            {
+                // アイコンファイルが見つからない場合はWindows標準アイコンを使用
+                customIcon = SystemIcons.Application;
+                _logger.LogWarning($"アイコンファイルが見つかりません: {iconPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // アイコンの読み込みに失敗した場合はWindows標準アイコンを使用
+            customIcon = SystemIcons.Application;
+            _logger.LogError($"アイコンの読み込みに失敗しました: {ex.Message}", ex);
+        }
+
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application, // Windows標準アイコンを使用
+            Icon = customIcon,
             Text = AppConstants.SystemTrayTextMonitoring,
             Visible = true
         };
