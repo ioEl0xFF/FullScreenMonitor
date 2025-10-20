@@ -84,11 +84,34 @@ namespace FullScreenMonitor
             }
         }
 
+        private bool _restoreOnSettingsClosed = true;
+        public bool RestoreOnSettingsClosed
+        {
+            get => _restoreOnSettingsClosed;
+            set
+            {
+                _restoreOnSettingsClosed = value;
+                OnPropertyChanged(nameof(RestoreOnSettingsClosed));
+            }
+        }
+
+        private bool _restoreOnAppExit = true;
+        public bool RestoreOnAppExit
+        {
+            get => _restoreOnAppExit;
+            set
+            {
+                _restoreOnAppExit = value;
+                OnPropertyChanged(nameof(RestoreOnAppExit));
+            }
+        }
+
         #endregion
 
         #region イベント
 
         public event PropertyChangedEventHandler? PropertyChanged;
+        public event Action? OnSettingsClosed;
 
         #endregion
 
@@ -233,6 +256,12 @@ namespace FullScreenMonitor
                 SaveSettings();
                 DialogResult = true;
             }
+
+            // 設定に基づいて復元処理を実行
+            if (RestoreOnSettingsClosed)
+            {
+                OnSettingsClosed?.Invoke();
+            }
         }
 
         #endregion
@@ -254,6 +283,10 @@ namespace FullScreenMonitor
 
             // 現在のスタートアップ登録状態を取得
             StartWithWindows = _startupManager.IsRegistered();
+
+            // 復元設定を読み込み
+            RestoreOnSettingsClosed = settings.RestoreOnSettingsClosed;
+            RestoreOnAppExit = settings.RestoreOnAppExit;
         }
 
         /// <summary>
@@ -265,7 +298,9 @@ namespace FullScreenMonitor
             {
                 TargetProcesses = TargetProcesses.ToList(),
                 MonitorInterval = MonitorInterval,
-                StartWithWindows = StartWithWindows
+                StartWithWindows = StartWithWindows,
+                RestoreOnSettingsClosed = RestoreOnSettingsClosed,
+                RestoreOnAppExit = RestoreOnAppExit
             };
         }
 

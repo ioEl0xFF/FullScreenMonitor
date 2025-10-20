@@ -238,6 +238,16 @@ public partial class MainWindow : Window
     /// </summary>
     private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // 設定に基づいて復元処理を実行
+        if (_currentSettings.RestoreOnAppExit && _monitorService != null)
+        {
+            var restoredCount = _monitorService.RestoreWindowsManually();
+            if (restoredCount > 0)
+            {
+                _logger.LogInfo($"アプリ終了時に{restoredCount}個のウィンドウを復元しました");
+            }
+        }
+
         // システムトレイから非表示にする
         if (_notifyIcon != null)
         {
@@ -263,6 +273,20 @@ public partial class MainWindow : Window
         {
             var settingsWindow = new SettingsWindow();
             settingsWindow.LoadSettings(_currentSettings);
+
+            // 設定画面を閉じた時の復元処理を設定
+            settingsWindow.OnSettingsClosed += () =>
+            {
+                if (_monitorService != null)
+                {
+                    var restoredCount = _monitorService.RestoreWindowsManually();
+                    if (restoredCount > 0 && _notifyIcon != null)
+                    {
+                        _notifyIcon.ShowBalloonTip(WindowConstants.BalloonTipInfoDuration, WindowConstants.BalloonTipTitle,
+                            $"{restoredCount}個のウィンドウを復元しました。", ToolTipIcon.Info);
+                    }
+                }
+            };
 
             if (settingsWindow.ShowDialog() == true)
             {

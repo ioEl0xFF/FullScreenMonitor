@@ -139,13 +139,8 @@ namespace FullScreenMonitor.Services
                         _detector = null;
                     }
 
-                    // 最小化されたウィンドウがあれば復元
-                    if (_minimizer.MinimizedWindowCount > 0)
-                    {
-                        var restoredCount = _minimizer.RestoreMinimizedWindows();
-                        _logger.LogInfo($"{restoredCount}個のウィンドウを復元しました");
-                        WindowsRestored?.Invoke(this, restoredCount);
-                    }
+                    // 最小化されたウィンドウがあれば復元（手動制御に変更）
+                    // 復元処理は RestoreWindowsManually メソッドで行う
 
                     IsMonitoring = false;
                     _logger.LogInfo("監視を停止しました");

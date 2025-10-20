@@ -75,6 +75,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -178,8 +179,23 @@
                       FontSize="12"/>
         </GroupBox>
 
+        <!-- ウィンドウ復元設定 -->
+        <GroupBox Grid.Row="3" Header="ウィンドウ復元設定" Margin="0,0,0,20">
+            <StackPanel Margin="10">
+                <CheckBox x:Name="RestoreOnSettingsClosedCheckBox"
+                          Content="設定画面を閉じた時に最小化されたウィンドウを復元"
+                          IsChecked="{Binding RestoreOnSettingsClosed}"
+                          Margin="0,0,0,5"
+                          FontSize="12"/>
+                <CheckBox x:Name="RestoreOnAppExitCheckBox"
+                          Content="ソフト終了時に最小化されたウィンドウを復元"
+                          IsChecked="{Binding RestoreOnAppExit}"
+                          FontSize="12"/>
+            </StackPanel>
+        </GroupBox>
+
         <!-- 状態表示 -->
-        <GroupBox Grid.Row="3" Header="アプリケーション状態" Margin="0,0,0,15">
+        <GroupBox Grid.Row="5" Header="アプリケーション状態" Margin="0,0,0,20">
             <StackPanel Margin="10">
                 <TextBlock x:Name="StatusTextBlock"
                            Text="監視中..."
@@ -194,10 +210,10 @@
         </GroupBox>
 
         <!-- ボタン -->
-        <StackPanel Grid.Row="5"
+        <StackPanel Grid.Row="6"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Margin="0,20,0,0">
+                    Margin="0,15,0,20">
             <Button Content="閉じる"
                     Click="Close_Click"
                     Width="80"

@@ -28,6 +28,18 @@ namespace FullScreenMonitor.Models
         public bool StartWithWindows { get; set; } = false;
 
         /// <summary>
+        /// 設定画面を閉じた時に最小化されたウィンドウを復元するかどうか
+        /// </summary>
+        [JsonPropertyName("restoreOnSettingsClosed")]
+        public bool RestoreOnSettingsClosed { get; set; } = true;
+
+        /// <summary>
+        /// アプリ終了時に最小化されたウィンドウを復元するかどうか
+        /// </summary>
+        [JsonPropertyName("restoreOnAppExit")]
+        public bool RestoreOnAppExit { get; set; } = true;
+
+        /// <summary>
         /// デフォルト設定を取得
         /// </summary>
         public static AppSettings GetDefault()
