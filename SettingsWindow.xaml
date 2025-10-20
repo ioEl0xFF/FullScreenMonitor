@@ -3,234 +3,224 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:FullScreenMonitor"
         xmlns:constants="clr-namespace:FullScreenMonitor.Constants;assembly=FullScreenMonitor"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="FullScreenMonitor - 設定"
         Height="{x:Static constants:WindowConstants.SettingsWindowHeight}"
         Width="{x:Static constants:WindowConstants.SettingsWindowWidth}"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        FontFamily="{DynamicResource MaterialDesignFont}">
 
     <Window.Resources>
-        <!-- モダンなスタイル定義 -->
-        <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background" Value="#FF0078D4"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                BorderBrush="{TemplateBinding BorderBrush}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF106EBE"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#FF005A9E"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <!-- Material Design カスタムスタイル -->
+        <Style x:Key="MaterialDesignCard" TargetType="materialDesign:Card">
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Padding" Value="16"/>
         </Style>
-
-        <Style x:Key="ModernTextBox" TargetType="TextBox">
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#FFCCCCCC"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                        Margin="{TemplateBinding Padding}"
-                                        VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#FF0078D4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        
+        <Style x:Key="MaterialDesignSectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
         </Style>
-
     </Window.Resources>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16">
+            <!-- ヘッダー -->
+            <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Settings" Width="24" Height="24" 
+                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="FullScreenMonitor 設定" 
+                              FontSize="20" FontWeight="Medium" 
+                              VerticalAlignment="Center"/>
+                    <Button x:Name="ThemeToggleButton" 
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="テーマ切り替え"
+                            Click="ThemeToggleButton_Click"
+                            Margin="16,0,0,0">
+                        <materialDesign:PackIcon Kind="ThemeLightDark" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+            </materialDesign:ColorZone>
 
-        <!-- 監視対象プロセス -->
-        <GroupBox Grid.Row="0" Header="監視対象プロセス" Margin="0,0,0,15">
-            <Grid Margin="10">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+            <!-- 監視対象プロセス -->
+            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
+                <StackPanel>
+                    <TextBlock Text="監視対象プロセス" Style="{StaticResource MaterialDesignSectionHeader}"/>
+                    
+                    <!-- プロセス名入力 -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <Grid Grid.Column="0" Margin="0,0,8,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <ComboBox x:Name="ProcessComboBox"
+                                      Grid.Column="0"
+                                      Text="{Binding NewProcessName, UpdateSourceTrigger=PropertyChanged}"
+                                      ItemsSource="{Binding RunningProcesses}"
+                                      DisplayMemberPath="DisplayText"
+                                      IsEditable="True"
+                                      Margin="0,0,8,0"
+                                      materialDesign:HintAssist.Hint="プロセス名を入力"
+                                      materialDesign:HintAssist.IsFloating="True"
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"/>
+                            
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource MaterialDesignIconButton}"
+                                    ToolTip="プロセス一覧を更新"
+                                    Click="RefreshProcesses_Click">
+                                <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                            </Button>
+                        </Grid>
+                        
+                        <Button Grid.Column="2"
+                                Click="AddProcess_Click"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" 
+                                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="追加" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
 
-                <!-- プロセス名入力 -->
-                <Grid Grid.Row="0" Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Margin="0,0,5,0">
+                    <!-- プロセス一覧 -->
+                    <ListBox x:Name="ProcessListBox"
+                             ItemsSource="{Binding TargetProcesses}"
+                             SelectionMode="Extended"
+                             Height="120"
+                             Margin="0,0,0,12"
+                             Style="{StaticResource MaterialDesignListBox}"/>
+
+                    <!-- 削除ボタン -->
+                    <Button Click="RemoveProcess_Click"
+                            ToolTip="Ctrl+クリックで複数選択可能"
+                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" 
+                                                    VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="選択項目を削除" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- 監視間隔 -->
+            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
+                <StackPanel>
+                    <TextBlock Text="監視間隔" Style="{StaticResource MaterialDesignSectionHeader}"/>
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ProcessComboBox"
-                                  Grid.Column="0"
-                                  Text="{Binding NewProcessName, UpdateSourceTrigger=PropertyChanged}"
-                                  ItemsSource="{Binding RunningProcesses}"
-                                  DisplayMemberPath="DisplayText"
-                                  IsEditable="True"
-                                  Margin="0,0,5,0"
-                                  Height="25"
-                                  SelectionChanged="ProcessComboBox_SelectionChanged"/>
-                        <Button Grid.Column="1"
-                                Content="更新"
-                                ToolTip="プロセス一覧を更新"
-                                Click="RefreshProcesses_Click"
-                                Width="50"
-                                Height="25"
-                                FontSize="10"
-                                Style="{StaticResource ModernButton}"/>
+                        <Slider Grid.Column="0"
+                                x:Name="IntervalSlider"
+                                Value="{Binding MonitorInterval}"
+                                Minimum="100"
+                                Maximum="2000"
+                                TickFrequency="100"
+                                IsSnapToTickEnabled="True"
+                                Margin="0,0,12,0"
+                                Style="{StaticResource MaterialDesignDiscreteSlider}"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding MonitorInterval, StringFormat={}{0}ms}"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Medium"
+                                   Foreground="{DynamicResource MaterialDesignBody}"/>
                     </Grid>
-                    <Button Grid.Column="2"
-                            Content="追加"
-                            Click="AddProcess_Click"
-                            Width="60"
-                            Height="25"
-                            Style="{StaticResource ModernButton}"/>
-                </Grid>
+                </StackPanel>
+            </materialDesign:Card>
 
-                <!-- プロセス一覧 -->
-                <ListBox x:Name="ProcessListBox"
-                         Grid.Row="1"
-                         ItemsSource="{Binding TargetProcesses}"
-                         SelectionMode="Extended"
-                         Height="120"
-                         Margin="0,0,0,10"
-                         BorderBrush="#FFCCCCCC"
-                         BorderThickness="1"/>
+            <!-- スタートアップ設定 -->
+            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
+                <StackPanel>
+                    <TextBlock Text="スタートアップ設定" Style="{StaticResource MaterialDesignSectionHeader}"/>
+                    <CheckBox x:Name="StartupCheckBox"
+                              Content="Windows起動時に自動でアプリを開始"
+                              IsChecked="{Binding StartWithWindows}"
+                              Style="{StaticResource MaterialDesignCheckBox}"/>
+                </StackPanel>
+            </materialDesign:Card>
 
-                <!-- 削除ボタン -->
-                <Button Grid.Row="2"
-                        Content="選択項目を削除"
-                        Click="RemoveProcess_Click"
-                        ToolTip="Ctrl+クリックで複数選択可能"
-                        Height="25"
-                        VerticalAlignment="Top"
-                        Style="{StaticResource ModernButton}"/>
-            </Grid>
-        </GroupBox>
+            <!-- ウィンドウ復元設定 -->
+            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
+                <StackPanel>
+                    <TextBlock Text="ウィンドウ復元設定" Style="{StaticResource MaterialDesignSectionHeader}"/>
+                    <StackPanel>
+                        <CheckBox x:Name="RestoreOnSettingsClosedCheckBox"
+                                  Content="設定画面を閉じた時に最小化されたウィンドウを復元"
+                                  IsChecked="{Binding RestoreOnSettingsClosed}"
+                                  Margin="0,0,0,8"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
+                        <CheckBox x:Name="RestoreOnAppExitCheckBox"
+                                  Content="ソフト終了時に最小化されたウィンドウを復元"
+                                  IsChecked="{Binding RestoreOnAppExit}"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
 
-        <!-- 監視間隔 -->
-        <GroupBox Grid.Row="1" Header="監視間隔" Margin="0,0,0,15">
-            <Grid Margin="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Slider Grid.Column="0"
-                        x:Name="IntervalSlider"
-                        Value="{Binding MonitorInterval}"
-                        Minimum="100"
-                        Maximum="2000"
-                        TickFrequency="100"
-                        IsSnapToTickEnabled="True"
-                        Margin="0,0,10,0"/>
-                <TextBlock Grid.Column="1"
-                           Text="{Binding MonitorInterval, StringFormat={}{0}ms}"
-                           VerticalAlignment="Center"
-                           Width="50"/>
-            </Grid>
-        </GroupBox>
+            <!-- 状態表示 -->
+            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
+                <StackPanel>
+                    <TextBlock Text="アプリケーション状態" Style="{StaticResource MaterialDesignSectionHeader}"/>
+                    <StackPanel>
+                        <TextBlock x:Name="StatusTextBlock"
+                                   Text="監視中..."
+                                   Foreground="{DynamicResource MaterialDesignValidationErrorBrush}"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock x:Name="LastCheckTextBlock"
+                                   Text="最終チェック: --"
+                                   Margin="0,0,0,4"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        <TextBlock x:Name="MinimizedWindowCountTextBlock"
+                                   Text="最小化ウィンドウ: 0個"
+                                   Margin="0,0,0,4"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        <TextBlock x:Name="TargetProcessCountTextBlock"
+                                   Text="対象プロセス: 0個"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                    </StackPanel>
+                </StackPanel>
+            </materialDesign:Card>
 
-        <!-- スタートアップ設定 -->
-        <GroupBox Grid.Row="2" Header="スタートアップ設定" Margin="0,0,0,15">
-            <CheckBox x:Name="StartupCheckBox"
-                      Content="Windows起動時に自動でアプリを開始"
-                      IsChecked="{Binding StartWithWindows}"
-                      Margin="10"
-                      FontSize="12"/>
-        </GroupBox>
-
-        <!-- ウィンドウ復元設定 -->
-        <GroupBox Grid.Row="3" Header="ウィンドウ復元設定" Margin="0,0,0,20">
-            <StackPanel Margin="10">
-                <CheckBox x:Name="RestoreOnSettingsClosedCheckBox"
-                          Content="設定画面を閉じた時に最小化されたウィンドウを復元"
-                          IsChecked="{Binding RestoreOnSettingsClosed}"
-                          Margin="0,0,0,5"
-                          FontSize="12"/>
-                <CheckBox x:Name="RestoreOnAppExitCheckBox"
-                          Content="ソフト終了時に最小化されたウィンドウを復元"
-                          IsChecked="{Binding RestoreOnAppExit}"
-                          FontSize="12"/>
+            <!-- ボタン -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,16,0,16">
+                <Button Click="Close_Click"
+                        Style="{StaticResource MaterialDesignRaisedButton}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16" 
+                                                VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="閉じる" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
-        </GroupBox>
-
-        <!-- 状態表示 -->
-        <GroupBox Grid.Row="6" Header="アプリケーション状態" Margin="0,0,0,20">
-            <StackPanel Margin="10">
-                <TextBlock x:Name="StatusTextBlock"
-                           Text="監視中..."
-                           Foreground="#FF107C10"
-                           FontWeight="Bold"/>
-                <TextBlock x:Name="LastCheckTextBlock"
-                           Text="最終チェック: --"
-                           Margin="0,5,0,0"
-                           FontSize="10"
-                           Foreground="#FF666666"/>
-                <TextBlock x:Name="MinimizedWindowCountTextBlock"
-                           Text="最小化ウィンドウ: 0個"
-                           Margin="0,5,0,0"
-                           FontSize="10"
-                           Foreground="#FF666666"/>
-                <TextBlock x:Name="TargetProcessCountTextBlock"
-                           Text="対象プロセス: 0個"
-                           Margin="0,5,0,0"
-                           FontSize="10"
-                           Foreground="#FF666666"/>
-            </StackPanel>
-        </GroupBox>
-
-        <!-- ボタン -->
-        <StackPanel Grid.Row="7"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,15,0,20">
-            <Button Content="閉じる"
-                    Click="Close_Click"
-                    Width="80"
-                    Height="25"
-                    Style="{StaticResource ModernButton}"/>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Window>
 

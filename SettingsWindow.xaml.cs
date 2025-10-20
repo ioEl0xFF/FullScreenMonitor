@@ -11,6 +11,7 @@ using FullScreenMonitor.Helpers;
 using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
 using FullScreenMonitor.Services;
+using MaterialDesignThemes.Wpf;
 
 namespace FullScreenMonitor
 {
@@ -27,6 +28,7 @@ namespace FullScreenMonitor
         private readonly ProcessHelper _processHelper;
         private DispatcherTimer? _statusUpdateTimer;
         private IWindowMonitorService? _monitorService;
+        private bool _isDarkTheme = false;
 
         #endregion
 
@@ -242,6 +244,18 @@ namespace FullScreenMonitor
         private void RefreshProcesses_Click(object sender, RoutedEventArgs e)
         {
             LoadRunningProcesses();
+        }
+
+        /// <summary>
+        /// テーマ切り替えボタンクリック
+        /// </summary>
+        private void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isDarkTheme = !_isDarkTheme;
+            var paletteHelper = new PaletteHelper();
+            var theme = paletteHelper.GetTheme();
+            theme.SetBaseTheme(_isDarkTheme ? BaseTheme.Dark : BaseTheme.Light);
+            paletteHelper.SetTheme(theme);
         }
 
         /// <summary>

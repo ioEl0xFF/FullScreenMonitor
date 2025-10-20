@@ -80,8 +80,8 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _logger.LogError(ErrorMessages.ApplicationInitializationError, ex);
-            System.Windows.MessageBox.Show($"{ErrorMessages.ApplicationInitializationError}\n{ex.Message}",
+            _logger.LogError($"アプリケーション初期化エラー: {ex.Message}", ex);
+            System.Windows.MessageBox.Show($"アプリケーションの初期化中にエラーが発生しました:\n{ex.Message}\n\n詳細はログファイルを確認してください。",
                 "初期化エラー", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

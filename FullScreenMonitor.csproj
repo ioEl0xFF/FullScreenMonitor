@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
   </ItemGroup>
 
   <ItemGroup>

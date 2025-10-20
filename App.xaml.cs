@@ -32,6 +32,8 @@ public partial class App : System.Windows.Application
     {
         // ロガーを初期化
         _logger = new FileLogger();
+        _logger.LogInfo($"{AppConstants.ApplicationName} v{AppConstants.ApplicationVersion} を起動中...");
+        _logger.LogInfo($"起動引数: {string.Join(" ", e.Args)}");
 
         // 多重起動の防止
         if (!_mutex.WaitOne(TimeSpan.Zero, false))
@@ -52,11 +54,16 @@ public partial class App : System.Windows.Application
 
         try
         {
-            _logger.LogInfo($"{AppConstants.ApplicationName} v{AppConstants.ApplicationVersion} を起動中...");
+            _logger.LogInfo("Material Designリソースの読み込みを開始...");
 
             // MainWindowを非表示で起動
+            _logger.LogInfo("MainWindowの初期化を開始...");
             _mainWindow = new MainWindow();
+            _logger.LogInfo("MainWindowの初期化が完了しました");
+
+            _logger.LogInfo("MainWindowを表示中...");
             _mainWindow.Show();
+            _logger.LogInfo("MainWindowを非表示に設定中...");
             _mainWindow.Hide(); // システムトレイ常駐のため非表示
 
             _logger.LogInfo("アプリケーションの起動が完了しました");
@@ -64,9 +71,9 @@ public partial class App : System.Windows.Application
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ErrorMessages.ApplicationInitializationError, ex);
+            _logger.LogError($"アプリケーション初期化エラー: {ex.Message}", ex);
             System.Windows.MessageBox.Show(
-                $"{ErrorMessages.ApplicationInitializationError}\n{ex.Message}",
+                $"アプリケーションの初期化中にエラーが発生しました:\n{ex.Message}\n\n詳細はログファイルを確認してください。",
                 "起動エラー",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

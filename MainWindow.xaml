@@ -6,15 +6,17 @@
         xmlns:local="clr-namespace:FullScreenMonitor"
         xmlns:constants="clr-namespace:FullScreenMonitor.Constants;assembly=FullScreenMonitor"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         Title="FullScreenMonitor"
-        Height="{x:Static constants:WindowConstants.HiddenWindowSize}" 
+        Height="{x:Static constants:WindowConstants.HiddenWindowSize}"
         Width="{x:Static constants:WindowConstants.HiddenWindowSize}"
         WindowStyle="None"
         ShowInTaskbar="False"
         Visibility="Hidden"
         ResizeMode="NoResize"
-        WindowState="Minimized">
+        WindowState="Minimized"
+        Background="{DynamicResource MaterialDesignPaper}">
     <!-- システムトレイ常駐用の隠しウィンドウ -->
     <Grid>
         <!-- このウィンドウは表示されないため、コンテンツは空 -->
