@@ -15,6 +15,53 @@ using FullScreenMonitor.Services;
 namespace FullScreenMonitor
 {
     /// <summary>
+    /// プロセス表示用アイテムクラス
+    /// </summary>
+    public class TargetProcessItem : INotifyPropertyChanged
+    {
+        private string _processName = string.Empty;
+        private bool _isRunning = false;
+        private string _displayName = string.Empty;
+
+        public string ProcessName
+        {
+            get => _processName;
+            set
+            {
+                _processName = value;
+                OnPropertyChanged(nameof(ProcessName));
+            }
+        }
+
+        public bool IsRunning
+        {
+            get => _isRunning;
+            set
+            {
+                _isRunning = value;
+                OnPropertyChanged(nameof(IsRunning));
+            }
+        }
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                _displayName = value;
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    /// <summary>
     /// SettingsWindow.xaml の相互作用ロジック
     /// </summary>
     public partial class SettingsWindow : Window, INotifyPropertyChanged
@@ -32,8 +79,8 @@ namespace FullScreenMonitor
 
         #region プロパティ
 
-        private ObservableCollection<string> _targetProcesses = new();
-        public ObservableCollection<string> TargetProcesses
+        private ObservableCollection<TargetProcessItem> _targetProcesses = new();
+        public ObservableCollection<TargetProcessItem> TargetProcesses
         {
             get => _targetProcesses;
             set
@@ -140,6 +187,9 @@ namespace FullScreenMonitor
                 Interval = TimeSpan.FromSeconds(1)
             };
             _statusUpdateTimer.Tick += StatusUpdateTimer_Tick;
+
+            // キーボードショートカットの設定
+            KeyDown += SettingsWindow_KeyDown;
         }
 
         #endregion
@@ -147,27 +197,87 @@ namespace FullScreenMonitor
         #region イベントハンドラー
 
         /// <summary>
+        /// プロセス名を正規化する
+        /// </summary>
+        private string NormalizeProcessName(string processName)
+        {
+            if (string.IsNullOrWhiteSpace(processName))
+                return string.Empty;
+
+            // .exeを除去し、小文字に変換
+            var normalized = processName.Trim().ToLower();
+            if (normalized.EndsWith(".exe"))
+            {
+                normalized = normalized.Substring(0, normalized.Length - 4);
+            }
+
+            return normalized;
+        }
+
+        /// <summary>
+        /// プロセス名の入力バリデーション
+        /// </summary>
+        private string? ValidateProcessName(string processName)
+        {
+            if (string.IsNullOrWhiteSpace(processName))
+            {
+                return "プロセス名を入力してください";
+            }
+
+            var normalized = NormalizeProcessName(processName);
+            if (string.IsNullOrEmpty(normalized))
+            {
+                return "有効なプロセス名を入力してください";
+            }
+
+            // 特殊文字のチェック
+            if (normalized.Any(c => !char.IsLetterOrDigit(c) && c != '.' && c != '-' && c != '_'))
+            {
+                return "プロセス名に使用できない文字が含まれています";
+            }
+
+            // 長さのチェック
+            if (normalized.Length > 50)
+            {
+                return "プロセス名が長すぎます（50文字以内）";
+            }
+
+            return null; // バリデーション成功
+        }
+
+        /// <summary>
         /// プロセス追加ボタンクリック
         /// </summary>
         private void AddProcess_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(NewProcessName))
+            // 入力バリデーション
+            var validationError = ValidateProcessName(NewProcessName);
+            if (validationError != null)
             {
-                System.Windows.MessageBox.Show(ErrorMessages.ProcessNameInputError, "入力エラー",
+                System.Windows.MessageBox.Show(validationError, "入力エラー",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var processName = NewProcessName.Trim().ToLower();
+            var normalizedProcessName = NormalizeProcessName(NewProcessName);
 
-            if (TargetProcesses.Contains(processName))
+            // 重複チェック
+            if (TargetProcesses.Any(p => p.ProcessName == normalizedProcessName))
             {
                 System.Windows.MessageBox.Show(ErrorMessages.ProcessNameDuplicateError, "重複エラー",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            TargetProcesses.Add(processName);
+            // 新しいプロセスアイテムを作成
+            var processItem = new TargetProcessItem
+            {
+                ProcessName = normalizedProcessName,
+                DisplayName = normalizedProcessName,
+                IsRunning = IsProcessRunning(normalizedProcessName)
+            };
+
+            TargetProcesses.Add(processItem);
             NewProcessName = string.Empty;
 
             // 自動保存
@@ -175,11 +285,23 @@ namespace FullScreenMonitor
         }
 
         /// <summary>
-        /// プロセス削除ボタンクリック
+        /// 個別プロセス削除ボタンクリック
+        /// </summary>
+        private void RemoveIndividualProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button && button.DataContext is TargetProcessItem processItem)
+            {
+                TargetProcesses.Remove(processItem);
+                SaveSettings();
+            }
+        }
+
+        /// <summary>
+        /// プロセス削除ボタンクリック（一括削除）
         /// </summary>
         private void RemoveProcess_Click(object sender, RoutedEventArgs e)
         {
-            var selectedItems = ProcessListBox.SelectedItems.Cast<string>().ToList();
+            var selectedItems = ProcessListBox.SelectedItems.Cast<TargetProcessItem>().ToList();
 
             if (selectedItems.Count == 0)
             {
@@ -192,12 +314,12 @@ namespace FullScreenMonitor
             string message;
             if (selectedItems.Count == 1)
             {
-                message = $"'{selectedItems[0]}'を削除しますか？";
+                message = $"'{selectedItems[0].ProcessName}'を削除しますか？";
             }
             else
             {
                 message = $"選択された{selectedItems.Count}個のプロセスを削除しますか？\n\n" +
-                         string.Join("\n", selectedItems.Take(5));
+                         string.Join("\n", selectedItems.Take(5).Select(p => p.ProcessName));
                 if (selectedItems.Count > 5)
                 {
                     message += $"\n... 他{selectedItems.Count - 5}個";
@@ -256,6 +378,39 @@ namespace FullScreenMonitor
         }
 
         /// <summary>
+        /// キーボードショートカット処理
+        /// </summary>
+        private void SettingsWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case System.Windows.Input.Key.Enter:
+                    // Enterキーでプロセス追加
+                    if (ProcessComboBox.IsFocused || !string.IsNullOrWhiteSpace(NewProcessName))
+                    {
+                        AddProcess_Click(sender, new RoutedEventArgs());
+                        e.Handled = true;
+                    }
+                    break;
+
+                case System.Windows.Input.Key.Delete:
+                    // Deleteキーで選択プロセス削除
+                    if (ProcessListBox.IsFocused && ProcessListBox.SelectedItems.Count > 0)
+                    {
+                        RemoveProcess_Click(sender, new RoutedEventArgs());
+                        e.Handled = true;
+                    }
+                    break;
+
+                case System.Windows.Input.Key.Escape:
+                    // Escキーでウィンドウを閉じる
+                    Close_Click(sender, new RoutedEventArgs());
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        /// <summary>
         /// ウィンドウクローズ処理
         /// </summary>
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -289,7 +444,13 @@ namespace FullScreenMonitor
             TargetProcesses.Clear();
             foreach (var process in settings.TargetProcesses)
             {
-                TargetProcesses.Add(process);
+                var processItem = new TargetProcessItem
+                {
+                    ProcessName = process,
+                    DisplayName = process,
+                    IsRunning = IsProcessRunning(process)
+                };
+                TargetProcesses.Add(processItem);
             }
 
             MonitorInterval = settings.MonitorInterval;
@@ -321,7 +482,7 @@ namespace FullScreenMonitor
         {
             return new Models.AppSettings
             {
-                TargetProcesses = TargetProcesses.ToList(),
+                TargetProcesses = TargetProcesses.Select(p => p.ProcessName).ToList(),
                 MonitorInterval = MonitorInterval,
                 StartWithWindows = StartWithWindows,
                 RestoreOnSettingsClosed = RestoreOnSettingsClosed,
@@ -450,6 +611,33 @@ namespace FullScreenMonitor
         }
 
         /// <summary>
+        /// プロセスが実行中かどうかをチェック
+        /// </summary>
+        private bool IsProcessRunning(string processName)
+        {
+            try
+            {
+                var processes = System.Diagnostics.Process.GetProcessesByName(processName);
+                return processes.Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// プロセスの実行状態を更新
+        /// </summary>
+        private void UpdateProcessRunningStates()
+        {
+            foreach (var processItem in TargetProcesses)
+            {
+                processItem.IsRunning = IsProcessRunning(processItem.ProcessName);
+            }
+        }
+
+        /// <summary>
         /// アプリケーション状態を更新
         /// </summary>
         private void UpdateApplicationStatus()
@@ -468,6 +656,9 @@ namespace FullScreenMonitor
                 // デバッグ用：監視サービスがnullの場合の表示
                 UpdateStatus("監視サービス未接続", "--", 0, 0);
             }
+
+            // プロセスの実行状態を更新
+            UpdateProcessRunningStates();
         }
 
         #endregion

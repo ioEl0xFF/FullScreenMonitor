@@ -14,7 +14,7 @@ public static class WindowConstants
     /// 設定ウィンドウのデフォルトサイズ
     /// </summary>
     public static readonly double SettingsWindowWidth = 500.0;
-    public static readonly double SettingsWindowHeight = 750.0;
+    public static readonly double SettingsWindowHeight = 850.0;
 
     /// <summary>
     /// 設定ウィンドウのマージン
