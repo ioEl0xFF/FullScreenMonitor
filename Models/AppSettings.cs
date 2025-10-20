@@ -40,6 +40,12 @@ namespace FullScreenMonitor.Models
         public bool RestoreOnAppExit { get; set; } = true;
 
         /// <summary>
+        /// ダークテーマを使用するかどうか
+        /// </summary>
+        [JsonPropertyName("useDarkTheme")]
+        public bool UseDarkTheme { get; set; } = false;
+
+        /// <summary>
         /// デフォルト設定を取得
         /// </summary>
         public static AppSettings GetDefault()

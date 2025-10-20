@@ -8,6 +8,7 @@ using FullScreenMonitor.Helpers;
 using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Models;
 using FullScreenMonitor.Services;
+using MaterialDesignThemes.Wpf;
 using WinApplication = System.Windows.Application;
 
 namespace FullScreenMonitor;
@@ -66,6 +67,9 @@ public partial class MainWindow : Window
 
             // 設定を読み込み
             LoadSettings();
+            
+            // テーマ設定を初期化
+            InitializeTheme();
 
             // システムトレイアイコンを初期化
             InitializeNotifyIcon();
@@ -349,6 +353,28 @@ public partial class MainWindow : Window
         lock (_lockObject)
         {
             _currentSettings = _settingsManager.LoadSettings();
+        }
+    }
+    
+    /// <summary>
+    /// テーマ設定を初期化
+    /// </summary>
+    private void InitializeTheme()
+    {
+        try
+        {
+            var paletteHelper = new PaletteHelper();
+            var theme = paletteHelper.GetTheme();
+            theme.SetBaseTheme(_currentSettings.UseDarkTheme ? 
+                BaseTheme.Dark : 
+                BaseTheme.Light);
+            paletteHelper.SetTheme(theme);
+            
+            _logger.LogInfo($"テーマを初期化しました: {(_currentSettings.UseDarkTheme ? "ダーク" : "ライト")}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"テーマ初期化エラー: {ex.Message}", ex);
         }
     }
 

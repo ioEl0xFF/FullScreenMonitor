@@ -16,12 +16,27 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         FontFamily="{DynamicResource MaterialDesignFont}">
+        
+        <!-- タイトルバーの色をカスタマイズ -->
+        <WindowChrome.WindowChrome>
+            <WindowChrome CaptionHeight="0"
+                         ResizeBorderThickness="0"
+                         GlassFrameThickness="0"
+                         UseAeroCaptionButtons="False"/>
+        </WindowChrome.WindowChrome>
 
     <Window.Resources>
         <!-- Material Design カスタムスタイル -->
         <Style x:Key="MaterialDesignCard" TargetType="materialDesign:Card">
-            <Setter Property="Margin" Value="0,8"/>
-            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="UniformCornerRadius" Value="8"/>
+            <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp4"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp8"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         
         <Style x:Key="MaterialDesignSectionHeader" TargetType="TextBlock">
@@ -30,23 +45,115 @@
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
         </Style>
+        
+        <!-- アニメーション定義 -->
+        <Storyboard x:Key="FadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:0.3"/>
+        </Storyboard>
+        
+        <Storyboard x:Key="ButtonHoverAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                           To="1.05" Duration="0:0:0.1"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                           To="1.05" Duration="0:0:0.1"/>
+        </Storyboard>
+        
+        <Storyboard x:Key="ButtonLeaveAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                           To="1.0" Duration="0:0:0.1"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                           To="1.0" Duration="0:0:0.1"/>
+        </Storyboard>
+        
+        <!-- ボタンスタイル -->
+        <Style x:Key="AnimatedButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard Storyboard="{StaticResource ButtonHoverAnimation}"/>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard Storyboard="{StaticResource ButtonLeaveAnimation}"/>
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- プロセスリストアイテムスタイル -->
+        <Style x:Key="ProcessListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <materialDesign:PackIcon Kind="Application" 
+                                                       Grid.Column="0"
+                                                       Width="16" Height="16"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"
+                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                                
+                                <TextBlock Grid.Column="1"
+                                          Text="{TemplateBinding Content}"
+                                          VerticalAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource MaterialDesignSelection}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource MaterialDesignSelection}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="16">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="True"
+                  PanningMode="VerticalOnly">
+        <StackPanel Margin="20">
             <!-- ヘッダー -->
-            <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" Margin="0,0,0,16">
+            <materialDesign:ColorZone Mode="PrimaryMid" Padding="20,20,16,20" Margin="0,0,0,20">
+                <materialDesign:ColorZone.Effect>
+                    <DropShadowEffect Color="Black" Opacity="0.2" ShadowDepth="4" BlurRadius="8"/>
+                </materialDesign:ColorZone.Effect>
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Settings" Width="24" Height="24" 
-                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <materialDesign:PackIcon Kind="Settings" Width="32" Height="32" 
+                                            VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock Text="FullScreenMonitor 設定" 
-                              FontSize="20" FontWeight="Medium" 
+                              FontSize="24" FontWeight="Medium" 
                               VerticalAlignment="Center"/>
                     <Button x:Name="ThemeToggleButton" 
-                            Style="{StaticResource MaterialDesignIconButton}"
+                            Style="{StaticResource AnimatedButton}"
                             ToolTip="テーマ切り替え"
                             Click="ThemeToggleButton_Click"
-                            Margin="16,0,0,0">
+                            Margin="20,0,0,0"
+                            Width="36" Height="36"
+                            Padding="6">
                         <materialDesign:PackIcon Kind="ThemeLightDark" Width="20" Height="20"/>
                     </Button>
                 </StackPanel>
@@ -92,7 +199,7 @@
                         
                         <Button Grid.Column="2"
                                 Click="AddProcess_Click"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Style="{StaticResource AnimatedButton}"
                                 Margin="8,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" 
@@ -108,12 +215,14 @@
                              SelectionMode="Extended"
                              Height="120"
                              Margin="0,0,0,12"
-                             Style="{StaticResource MaterialDesignListBox}"/>
+                             Style="{StaticResource MaterialDesignListBox}"
+                             ItemContainerStyle="{StaticResource ProcessListItemStyle}"/>
 
                     <!-- 削除ボタン -->
                     <Button Click="RemoveProcess_Click"
                             ToolTip="Ctrl+クリックで複数選択可能"
-                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Foreground="{StaticResource ErrorBrush}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" 
                                                     VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -132,20 +241,31 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Slider Grid.Column="0"
-                                x:Name="IntervalSlider"
-                                Value="{Binding MonitorInterval}"
-                                Minimum="100"
-                                Maximum="2000"
-                                TickFrequency="100"
-                                IsSnapToTickEnabled="True"
-                                Margin="0,0,12,0"
-                                Style="{StaticResource MaterialDesignDiscreteSlider}"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding MonitorInterval, StringFormat={}{0}ms}"
-                                   VerticalAlignment="Center"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource MaterialDesignBody}"/>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <Slider x:Name="IntervalSlider"
+                                    Value="{Binding MonitorInterval}"
+                                    Minimum="100"
+                                    Maximum="2000"
+                                    TickFrequency="100"
+                                    IsSnapToTickEnabled="True"
+                                    Height="24"
+                                    Style="{StaticResource MaterialDesignDiscreteSlider}"/>
+                            <TextBlock Text="監視間隔を調整してください（100ms〜2000ms）"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding MonitorInterval, StringFormat={}{0}ms}"
+                                       FontWeight="Medium"
+                                       FontSize="16"
+                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="現在の値"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                 </StackPanel>
             </materialDesign:Card>
@@ -184,25 +304,75 @@
                 <StackPanel>
                     <TextBlock Text="アプリケーション状態" Style="{StaticResource MaterialDesignSectionHeader}"/>
                     <StackPanel>
-                        <TextBlock x:Name="StatusTextBlock"
-                                   Text="監視中..."
-                                   Foreground="{DynamicResource MaterialDesignValidationErrorBrush}"
-                                   FontWeight="Medium"
-                                   Margin="0,0,0,8"/>
-                        <TextBlock x:Name="LastCheckTextBlock"
-                                   Text="最終チェック: --"
-                                   Margin="0,0,0,4"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                        <TextBlock x:Name="MinimizedWindowCountTextBlock"
-                                   Text="最小化ウィンドウ: 0個"
-                                   Margin="0,0,0,4"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                        <TextBlock x:Name="TargetProcessCountTextBlock"
-                                   Text="対象プロセス: 0個"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        <!-- 監視状態インジケーター -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Ellipse x:Name="StatusIndicator" 
+                                     Width="12" Height="12" 
+                                     Fill="{StaticResource SuccessBrush}"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="Green" Opacity="0.6" ShadowDepth="0" BlurRadius="4"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <TextBlock x:Name="StatusTextBlock"
+                                       Text="監視中..."
+                                       Foreground="{StaticResource SuccessBrush}"
+                                       FontWeight="Medium"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- 統計情報 -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- 最終チェック時間 -->
+                            <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,8,8">
+                                <TextBlock Text="最終チェック"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           Margin="0,0,0,2"/>
+                                <TextBlock x:Name="LastCheckTextBlock"
+                                           Text="--"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource MaterialDesignBody}"/>
+                            </StackPanel>
+                            
+                            <!-- 対象プロセス数 -->
+                            <StackPanel Grid.Column="1" Grid.Row="0" Margin="8,0,0,8">
+                                <TextBlock Text="対象プロセス"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           Margin="0,0,0,2"/>
+                                <TextBlock x:Name="TargetProcessCountTextBlock"
+                                           Text="0個"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource MaterialDesignBody}"/>
+                            </StackPanel>
+                            
+                            <!-- 最小化ウィンドウ数 -->
+                            <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1">
+                                <TextBlock Text="最小化ウィンドウ"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           Margin="0,0,0,2"/>
+                                <TextBlock x:Name="MinimizedWindowCountTextBlock"
+                                           Text="0個"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           Foreground="{DynamicResource MaterialDesignBody}"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </StackPanel>
             </materialDesign:Card>
@@ -210,9 +380,9 @@
             <!-- ボタン -->
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Right"
-                        Margin="0,16,0,16">
+                        Margin="0,20,0,20">
                 <Button Click="Close_Click"
-                        Style="{StaticResource MaterialDesignRaisedButton}">
+                        Style="{StaticResource AnimatedButton}">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Close" Width="16" Height="16" 
                                                 VerticalAlignment="Center" Margin="0,0,4,0"/>

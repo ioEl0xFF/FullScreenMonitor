@@ -136,6 +136,9 @@ namespace FullScreenMonitor
             LoadRunningProcesses();
             Closing += Window_Closing;
 
+            // テーマ設定を読み込み
+            LoadThemePreference();
+
             // 状態更新タイマーを初期化
             _statusUpdateTimer = new DispatcherTimer
             {
@@ -256,6 +259,88 @@ namespace FullScreenMonitor
             var theme = paletteHelper.GetTheme();
             theme.SetBaseTheme(_isDarkTheme ? BaseTheme.Dark : BaseTheme.Light);
             paletteHelper.SetTheme(theme);
+            
+            // タイトルバーの色を更新
+            UpdateTitleBarColor();
+            
+            // テーマ設定を永続化
+            SaveThemePreference();
+        }
+
+        /// <summary>
+        /// テーマ設定を保存
+        /// </summary>
+        private void SaveThemePreference()
+        {
+            try
+            {
+                var settings = _settingsManager.LoadSettings();
+                settings.UseDarkTheme = _isDarkTheme;
+                _settingsManager.SaveSettings(settings);
+                _logger.LogInfo($"テーマ設定を保存しました: {(_isDarkTheme ? "ダーク" : "ライト")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"テーマ設定の保存に失敗しました: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// テーマ設定を読み込み
+        /// </summary>
+        private void LoadThemePreference()
+        {
+            try
+            {
+                // 保存されたテーマ設定を読み込み
+                var settings = _settingsManager.LoadSettings();
+                _isDarkTheme = settings.UseDarkTheme;
+                
+                var paletteHelper = new PaletteHelper();
+                var theme = paletteHelper.GetTheme();
+                theme.SetBaseTheme(_isDarkTheme ? BaseTheme.Dark : BaseTheme.Light);
+                paletteHelper.SetTheme(theme);
+                
+                // タイトルバーの色を初期設定
+                UpdateTitleBarColor();
+                
+                _logger.LogInfo($"テーマ設定を読み込みました: {(_isDarkTheme ? "ダーク" : "ライト")}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"テーマ設定の読み込みに失敗しました: {ex.Message}", ex);
+                // エラー時はデフォルトのライトテーマを使用
+                _isDarkTheme = false;
+                var paletteHelper = new PaletteHelper();
+                var theme = paletteHelper.GetTheme();
+                theme.SetBaseTheme(BaseTheme.Light);
+                paletteHelper.SetTheme(theme);
+            }
+        }
+        
+        /// <summary>
+        /// タイトルバーの色を更新
+        /// </summary>
+        private void UpdateTitleBarColor()
+        {
+            try
+            {
+                // Windows APIを使用してタイトルバーの色を変更
+                var titleBarColor = _isDarkTheme ? 
+                    System.Drawing.ColorTranslator.FromHtml("#1976D2") : // ダークテーマ用の濃い青
+                    System.Drawing.ColorTranslator.FromHtml("#2196F3");  // ライトテーマ用の明るい青
+                
+                // DwmSetWindowAttributeを使用してタイトルバーの色を設定
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                var color = (uint)((titleBarColor.B << 16) | (titleBarColor.G << 8) | titleBarColor.R);
+                
+                // DWMWA_CAPTION_COLOR を使用
+                NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_CAPTION_COLOR, ref color, sizeof(uint));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"タイトルバーの色更新に失敗しました: {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -314,6 +399,9 @@ namespace FullScreenMonitor
             // 復元設定を読み込み
             RestoreOnSettingsClosed = settings.RestoreOnSettingsClosed;
             RestoreOnAppExit = settings.RestoreOnAppExit;
+            
+            // テーマ設定を読み込み
+            _isDarkTheme = settings.UseDarkTheme;
 
             // 監視サービスを設定
             _monitorService = monitorService;
@@ -339,7 +427,8 @@ namespace FullScreenMonitor
                 MonitorInterval = MonitorInterval,
                 StartWithWindows = StartWithWindows,
                 RestoreOnSettingsClosed = RestoreOnSettingsClosed,
-                RestoreOnAppExit = RestoreOnAppExit
+                RestoreOnAppExit = RestoreOnAppExit,
+                UseDarkTheme = _isDarkTheme
             };
         }
 

@@ -7,9 +7,30 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!-- Material Design -->
-                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
+                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Blue" SecondaryColor="Cyan" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign2.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- カスタムカラーリソース -->
+            <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50"/>
+            <SolidColorBrush x:Key="WarningBrush" Color="#FF9800"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
+            <SolidColorBrush x:Key="InfoBrush" Color="#2196F3"/>
+
+            <!-- タイトルバーカラーリソース -->
+            <SolidColorBrush x:Key="LightTitleBarBrush" Color="#2196F3"/>
+            <SolidColorBrush x:Key="DarkTitleBarBrush" Color="#1976D2"/>
+
+            <!-- エレベーション定義 -->
+            <Style x:Key="ElevationDp2" TargetType="materialDesign:Card">
+                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+            </Style>
+            <Style x:Key="ElevationDp4" TargetType="materialDesign:Card">
+                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp4"/>
+            </Style>
+            <Style x:Key="ElevationDp8" TargetType="materialDesign:Card">
+                <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp8"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

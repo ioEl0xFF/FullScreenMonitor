@@ -219,6 +219,12 @@ namespace FullScreenMonitor.Helpers
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
         public static extern int QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
 
+        /// <summary>
+        /// DWMウィンドウ属性を設定
+        /// </summary>
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref uint attrValue, int attrSize);
+
         #endregion
 
         #region 定数
@@ -226,6 +232,9 @@ namespace FullScreenMonitor.Helpers
         // プロセスアクセス権限
         public const uint PROCESS_QUERY_INFORMATION = 0x0400;
         public const uint PROCESS_VM_READ = 0x0010;
+        
+        // DWM属性定数
+        public const int DWMWA_CAPTION_COLOR = 35;
 
         #endregion
 
