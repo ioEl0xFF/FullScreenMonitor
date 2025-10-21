@@ -25,7 +25,7 @@ namespace FullScreenMonitor
     public SettingsWindow(SettingsViewModel viewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeEventHandlers();
     }
 
@@ -50,6 +50,7 @@ namespace FullScreenMonitor
                 _viewModel.EmphasizeAddButtonRequested += OnEmphasizeAddButtonRequested;
                 _viewModel.ResetAddButtonRequested += OnResetAddButtonRequested;
                 _viewModel.ComboBoxSelectionAnimationRequested += OnComboBoxSelectionAnimationRequested;
+                _viewModel.OnStatusUpdated += OnStatusUpdated;
 
                 // ウィンドウクローズイベントを設定
                 Closing += Window_Closing;
@@ -139,6 +140,10 @@ namespace FullScreenMonitor
         {
             try
             {
+                if (_viewModel != null)
+                {
+                    _viewModel.OnStatusUpdated -= OnStatusUpdated;
+                }
                 _viewModel?.CloseSettings();
                 _viewModel?.Dispose();
             }
@@ -219,6 +224,62 @@ namespace FullScreenMonitor
                 // アニメーションエラーは無視
                 System.Diagnostics.Debug.WriteLine($"ComboBox選択アニメーションエラー: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 状態更新イベントハンドラー
+        /// </summary>
+        private void OnStatusUpdated(Models.MonitoringStats stats)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var status = stats.IsMonitoring ? "監視中..." : "監視停止";
+                var lastCheck = stats.LastCheckTime != DateTime.MinValue 
+                    ? stats.LastCheckTime.ToString("HH:mm:ss") 
+                    : "--";
+                
+                StatusTextBlock.Text = status;
+                LastCheckTextBlock.Text = lastCheck;
+                MinimizedWindowCountTextBlock.Text = $"{stats.MinimizedWindowCount}個";
+                TargetProcessCountTextBlock.Text = $"{stats.TargetProcessCount}個";
+                
+                // ステータスインジケーターの色を更新
+                var brush = stats.IsMonitoring 
+                    ? (System.Windows.Media.Brush)FindResource("SuccessBrush")
+                    : (System.Windows.Media.Brush)FindResource("MaterialDesignBodyLight");
+                StatusIndicator.Fill = brush;
+                StatusTextBlock.Foreground = brush;
+
+                // ボタンのテキストとアイコンを更新
+                ToggleMonitoringText.Text = stats.IsMonitoring ? "一時停止" : "再開";
+                ToggleMonitoringIcon.Kind = stats.IsMonitoring 
+                    ? MaterialDesignThemes.Wpf.PackIconKind.Pause 
+                    : MaterialDesignThemes.Wpf.PackIconKind.Play;
+            });
+        }
+
+        /// <summary>
+        /// 監視制御ボタンクリックイベントハンドラー
+        /// </summary>
+        private void ToggleMonitoring_Click(object sender, RoutedEventArgs e)
+        {
+            // ボタンを無効化して連続クリックを防止
+            ToggleMonitoringButton.IsEnabled = false;
+            
+            // 非同期で監視制御を実行
+            _viewModel?.ToggleMonitoring();
+            
+            // 少し遅延してからボタンを再有効化（監視状態の更新を待つ）
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            timer.Tick += (s, args) =>
+            {
+                timer.Stop();
+                ToggleMonitoringButton.IsEnabled = true;
+            };
+            timer.Start();
         }
 
         #endregion

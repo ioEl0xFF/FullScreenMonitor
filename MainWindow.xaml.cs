@@ -46,15 +46,8 @@ public partial class MainWindow : Window
                 throw new InvalidOperationException("サービスコンテナが初期化されていません");
             }
 
-            // ViewModelを作成
-            _viewModel = new MainViewModel(
-                App.ServiceContainer.Resolve<ILogger>(),
-                App.ServiceContainer.Resolve<ISettingsManager>(),
-                App.ServiceContainer.Resolve<IStartupManager>(),
-                App.ServiceContainer.Resolve<IThemeService>(),
-                App.ServiceContainer.Resolve<INotifyIconService>(),
-                new WindowMonitorService(App.ServiceContainer.Resolve<ISettingsManager>().LoadSettings(), App.ServiceContainer.Resolve<ILogger>())
-            );
+            // ViewModelFactoryを使用してViewModelを作成
+            _viewModel = ViewModelFactory.CreateMainViewModel(App.ServiceContainer!);
 
             // イベントハンドラーを設定
             _viewModel.ShowSettingsRequested += OnShowSettingsRequested;
@@ -83,18 +76,14 @@ public partial class MainWindow : Window
     {
         try
         {
-            // ViewModelを作成
-            var settingsViewModel = new SettingsViewModel(
-                App.ServiceContainer!.Resolve<ILogger>(),
-                App.ServiceContainer.Resolve<ISettingsManager>(),
-                App.ServiceContainer.Resolve<IStartupManager>(),
-                App.ServiceContainer.Resolve<IThemeService>(),
-                App.ServiceContainer.Resolve<IProcessManagementService>(),
-                _viewModel?.GetStats() != null ? new WindowMonitorService(_viewModel.CurrentSettings, App.ServiceContainer.Resolve<ILogger>()) : null
+            // ViewModelFactoryを使用してSettingsViewModelを作成
+            var monitorService = _viewModel!.GetMonitorService();
+            
+            var settingsViewModel = ViewModelFactory.CreateSettingsViewModelWithSettings(
+                App.ServiceContainer!,
+                _viewModel.CurrentSettings,
+                monitorService
             );
-
-            // 設定を読み込み
-            settingsViewModel.LoadSettings(_viewModel!.CurrentSettings, _viewModel.GetStats() != null ? new WindowMonitorService(_viewModel.CurrentSettings, App.ServiceContainer.Resolve<ILogger>()) : null);
 
             // 設定画面を閉じた時の復元処理を設定
             settingsViewModel.OnSettingsClosed += () =>

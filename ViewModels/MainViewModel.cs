@@ -193,6 +193,15 @@ public class MainViewModel : ViewModelBase
         return _monitorService.RestoreWindowsManually();
     }
 
+    /// <summary>
+    /// 監視サービスを取得
+    /// </summary>
+    /// <returns>監視サービス</returns>
+    public IWindowMonitorService GetMonitorService()
+    {
+        return _monitorService;
+    }
+
     #endregion
 
     #region プライベートメソッド

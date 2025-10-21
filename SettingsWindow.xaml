@@ -395,8 +395,27 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
+                        <!-- 監視制御ボタン -->
+                        <Button x:Name="ToggleMonitoringButton"
+                                Click="ToggleMonitoring_Click"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,12,0,0"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon x:Name="ToggleMonitoringIcon"
+                                                        Kind="Pause"
+                                                        Width="18" Height="18"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,8,0"/>
+                                <TextBlock x:Name="ToggleMonitoringText"
+                                           Text="一時停止"
+                                           VerticalAlignment="Center"
+                                           FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+
                         <!-- 統計情報 -->
-                        <Grid>
+                        <Grid Margin="0,16,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>

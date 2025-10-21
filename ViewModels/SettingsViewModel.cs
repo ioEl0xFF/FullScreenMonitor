@@ -41,6 +41,7 @@ public class SettingsViewModel : ViewModelBase
     private int _selectedProcessCount = 0;
     private string _deleteButtonText = "選択項目を削除";
     private bool _isDarkTheme = false;
+    private bool _isMonitoring = false;
 
     #endregion
 
@@ -172,6 +173,15 @@ public class SettingsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 監視中かどうか
+    /// </summary>
+    public bool IsMonitoring
+    {
+        get => _isMonitoring;
+        set => SetProperty(ref _isMonitoring, value);
+    }
+
     #endregion
 
     #region イベント
@@ -195,6 +205,11 @@ public class SettingsViewModel : ViewModelBase
     /// ComboBox選択アニメーションイベント
     /// </summary>
     public event Action? ComboBoxSelectionAnimationRequested;
+
+    /// <summary>
+    /// 状態更新イベント
+    /// </summary>
+    public event Action<MonitoringStats>? OnStatusUpdated;
 
     #endregion
 
@@ -485,6 +500,34 @@ public class SettingsViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// 監視を一時停止/再開
+    /// </summary>
+    public async void ToggleMonitoring()
+    {
+        if (_monitorService == null) return;
+        
+        try
+        {
+            if (IsMonitoring)
+            {
+                // 非同期で監視を停止
+                await Task.Run(() => _monitorService.StopMonitoring());
+                _logger.LogInfo("監視を一時停止しました");
+            }
+            else
+            {
+                // 非同期で監視を開始
+                await Task.Run(() => _monitorService.StartMonitoring());
+                _logger.LogInfo("監視を再開しました");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"監視制御エラー: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
     /// 設定画面を閉じる
     /// </summary>
     public void CloseSettings()
@@ -592,7 +635,10 @@ public class SettingsViewModel : ViewModelBase
             if (_monitorService != null)
             {
                 var stats = _monitorService.GetStats();
-                // 状態更新は必要に応じて実装
+                IsMonitoring = stats.IsMonitoring;
+                
+                // イベントを発火してUIを更新
+                OnStatusUpdated?.Invoke(stats);
             }
         }
         catch (Exception ex)
