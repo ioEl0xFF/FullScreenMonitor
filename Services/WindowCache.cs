@@ -11,17 +11,15 @@ namespace FullScreenMonitor.Services
     /// <summary>
     /// ウィンドウ情報のキャッシュサービス
     /// </summary>
-    public class WindowCache : IDisposable
+    public class WindowCache : ServiceBase, IWindowCache
     {
         #region フィールド
 
         private readonly Dictionary<IntPtr, WindowInfo> _windowCache = new();
         private readonly Dictionary<uint, string> _processNameCache = new();
         private readonly object _lockObject = new();
-        private readonly ILogger _logger;
         private DateTime _lastUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromSeconds(2);
-        private bool _disposed = false;
 
         #endregion
 
@@ -31,9 +29,8 @@ namespace FullScreenMonitor.Services
         /// コンストラクタ
         /// </summary>
         /// <param name="logger">ロガー</param>
-        public WindowCache(ILogger? logger = null)
+        public WindowCache(ILogger logger) : base(logger)
         {
-            _logger = logger ?? new ConsoleLogger();
         }
 
         #endregion
@@ -48,7 +45,7 @@ namespace FullScreenMonitor.Services
         {
             lock (_lockObject)
             {
-                if (_disposed)
+                if (IsDisposed)
                     return new List<WindowInfo>();
 
                 if (DateTime.Now - _lastUpdate > _cacheExpiry)
@@ -127,7 +124,7 @@ namespace FullScreenMonitor.Services
         {
             lock (_lockObject)
             {
-                if (!_disposed)
+                if (!IsDisposed)
                 {
                     UpdateCache();
                 }
@@ -185,11 +182,11 @@ namespace FullScreenMonitor.Services
                 }
                 
                 _lastUpdate = DateTime.Now;
-                _logger.LogDebug($"ウィンドウキャッシュを更新しました: {_windowCache.Count}個のウィンドウ");
+                LogDebug($"ウィンドウキャッシュを更新しました: {_windowCache.Count}個のウィンドウ");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"ウィンドウキャッシュの更新中にエラーが発生しました: {ex.Message}", ex);
+                LogError($"ウィンドウキャッシュの更新中にエラーが発生しました: {ex.Message}", ex);
             }
         }
 
@@ -252,7 +249,7 @@ namespace FullScreenMonitor.Services
             }
             catch (Exception ex)
             {
-                _logger.LogDebug($"ウィンドウ情報作成中にエラーが発生しました: {ex.Message}");
+                LogDebug($"ウィンドウ情報作成中にエラーが発生しました: {ex.Message}");
                 return null;
             }
         }
@@ -285,19 +282,10 @@ namespace FullScreenMonitor.Services
         /// <summary>
         /// リソースを解放
         /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// リソースを解放
-        /// </summary>
         /// <param name="disposing">マネージリソースを解放するかどうか</param>
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (!IsDisposed)
             {
                 if (disposing)
                 {
@@ -308,7 +296,7 @@ namespace FullScreenMonitor.Services
                     }
                 }
 
-                _disposed = true;
+                base.Dispose(disposing);
             }
         }
 

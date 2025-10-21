@@ -78,7 +78,10 @@ namespace FullScreenMonitor.Services
         {
             CurrentSettings = settings ?? throw new ArgumentNullException(nameof(settings));
             _logger = logger ?? new Services.ConsoleLogger();
-            _minimizer = new WindowMinimizer(_logger);
+            
+            // サービスコンテナからWindowCacheを取得してWindowMinimizerを作成
+            var windowCache = App.ServiceContainer?.Resolve<IWindowCache>() ?? throw new InvalidOperationException("WindowCacheサービスが登録されていません");
+            _minimizer = new WindowMinimizer(_logger, windowCache);
         }
 
         #endregion
@@ -99,7 +102,10 @@ namespace FullScreenMonitor.Services
 
                 try
                 {
-                    _detector = new FullScreenDetector(CurrentSettings.TargetProcesses, CurrentSettings.MonitorInterval, _logger);
+                    // サービスコンテナからWindowCacheを取得
+                    var windowCache = App.ServiceContainer?.Resolve<IWindowCache>() ?? throw new InvalidOperationException("WindowCacheサービスが登録されていません");
+                    
+                    _detector = new FullScreenDetector(CurrentSettings.TargetProcesses, CurrentSettings.MonitorInterval, _logger, windowCache);
                     _detector.FullScreenStateChanged += Detector_FullScreenStateChanged;
                     _detector.TargetProcessFocused += Detector_TargetProcessFocused;
                     _detector.StartMonitoring();

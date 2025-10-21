@@ -11,14 +11,13 @@ namespace FullScreenMonitor.Services
     /// <summary>
     /// ウィンドウ最小化サービス
     /// </summary>
-    public class WindowMinimizer : IWindowMinimizer
+    public class WindowMinimizer : ServiceBase, IWindowMinimizer
     {
         #region フィールド
 
         private readonly List<IntPtr> _minimizedWindows = new();
         private readonly object _lockObject = new();
-        private readonly ILogger _logger;
-        private readonly WindowCache _windowCache;
+        private readonly IWindowCache _windowCache;
 
         #endregion
 
@@ -28,10 +27,10 @@ namespace FullScreenMonitor.Services
         /// コンストラクタ
         /// </summary>
         /// <param name="logger">ロガー</param>
-        public WindowMinimizer(ILogger? logger = null)
+        /// <param name="windowCache">ウィンドウキャッシュ</param>
+        public WindowMinimizer(ILogger logger, IWindowCache windowCache) : base(logger)
         {
-            _logger = logger ?? new Services.ConsoleLogger();
-            _windowCache = new WindowCache(_logger);
+            _windowCache = windowCache ?? throw new ArgumentNullException(nameof(windowCache));
         }
 
         #endregion
@@ -66,7 +65,7 @@ namespace FullScreenMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ErrorMessages.WindowMinimizeError, ex);
+                    LogError(ErrorMessages.WindowMinimizeError, ex);
                     throw new WindowOperationException(ErrorMessages.WindowMinimizeError, IntPtr.Zero, ex);
                 }
 
@@ -100,7 +99,7 @@ namespace FullScreenMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ErrorMessages.WindowRestoreError, ex);
+                    LogError(ErrorMessages.WindowRestoreError, ex);
                     throw new WindowOperationException(ErrorMessages.WindowRestoreError, IntPtr.Zero, ex);
                 }
                 finally
@@ -157,7 +156,7 @@ namespace FullScreenMonitor.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ErrorMessages.WindowMinimizeError, ex);
+                    LogError(ErrorMessages.WindowMinimizeError, ex);
                     throw new WindowOperationException(ErrorMessages.WindowMinimizeError, IntPtr.Zero, ex);
                 }
 
@@ -183,21 +182,12 @@ namespace FullScreenMonitor.Services
         /// <summary>
         /// リソースを解放
         /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// リソースを解放
-        /// </summary>
         /// <param name="disposing">マネージリソースを解放するかどうか</param>
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!IsDisposed)
             {
-                _windowCache?.Dispose();
+                base.Dispose(disposing);
             }
         }
 
