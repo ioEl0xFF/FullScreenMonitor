@@ -145,6 +145,7 @@ public partial class App : System.Windows.Application
             _serviceContainer.RegisterSingleton<INotifyIconService>(() => new NotifyIconService(_logger!));
             _serviceContainer.RegisterSingleton<IProcessManagementService>(() => new ProcessManagementService(_logger!));
             _serviceContainer.RegisterSingleton<IValidationService>(() => new ValidationService(_logger!));
+            _serviceContainer.RegisterSingleton<IWindowCache>(() => new WindowCache(_logger!));
 
             _logger?.LogInfo("サービスコンテナの初期化が完了しました");
         }
