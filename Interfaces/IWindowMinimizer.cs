@@ -5,7 +5,7 @@ namespace FullScreenMonitor.Interfaces;
 /// <summary>
 /// ウィンドウ最小化サービスインターフェース
 /// </summary>
-public interface IWindowMinimizer
+public interface IWindowMinimizer : IDisposable
 {
     /// <summary>
     /// 最小化したウィンドウ数を取得

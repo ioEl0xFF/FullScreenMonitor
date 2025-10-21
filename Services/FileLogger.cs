@@ -15,6 +15,8 @@ public class FileLogger : ILogger
     private readonly string _logFilePath;
     private readonly LogLevel _minimumLevel;
     private readonly object _lockObject = new();
+    private FileStream? _fileStream;
+    private StreamWriter? _writer;
     private bool _disposed = false;
 
     /// <summary>
@@ -42,6 +44,9 @@ public class FileLogger : ILogger
         // ログファイル名を生成（日付付き）
         var fileName = $"{AppConstants.LogFilePrefix}_{DateTime.Now:yyyyMMdd}{AppConstants.LogFileExtension}";
         _logFilePath = Path.Combine(logDirectory, fileName);
+
+        // ファイルストリームを初期化
+        InitializeWriter();
     }
 
     /// <summary>
@@ -135,6 +140,27 @@ public class FileLogger : ILogger
     {
         if (!_disposed)
         {
+            if (disposing)
+            {
+                lock (_lockObject)
+                {
+                    try
+                    {
+                        _writer?.Dispose();
+                        _fileStream?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"FileLogger Dispose エラー: {ex.Message}");
+                    }
+                    finally
+                    {
+                        _writer = null;
+                        _fileStream = null;
+                    }
+                }
+            }
+
             _disposed = true;
         }
     }
@@ -172,6 +198,25 @@ public class FileLogger : ILogger
     }
 
     /// <summary>
+    /// ファイルストリームを初期化
+    /// </summary>
+    private void InitializeWriter()
+    {
+        try
+        {
+            _fileStream = new FileStream(_logFilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            _writer = new StreamWriter(_fileStream, Encoding.UTF8) { AutoFlush = true };
+        }
+        catch (Exception ex)
+        {
+            // フォールバック処理：ファイルストリームが失敗した場合は従来の方法を使用
+            _writer = null;
+            _fileStream = null;
+            System.Diagnostics.Debug.WriteLine($"FileLogger初期化エラー: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// ファイルにログを書き込み
     /// </summary>
     /// <param name="logEntry">ログエントリ</param>
@@ -179,7 +224,26 @@ public class FileLogger : ILogger
     {
         lock (_lockObject)
         {
-            File.AppendAllText(_logFilePath, logEntry + Environment.NewLine, Encoding.UTF8);
+            if (_disposed)
+                return;
+
+            try
+            {
+                if (_writer != null)
+                {
+                    _writer.WriteLine(logEntry);
+                }
+                else
+                {
+                    // フォールバック：ファイルストリームが使用できない場合
+                    File.AppendAllText(_logFilePath, logEntry + Environment.NewLine, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                // ログ書き込みに失敗した場合は無視（無限ループを防ぐため）
+                System.Diagnostics.Debug.WriteLine($"ログ書き込みエラー: {ex.Message}");
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ namespace FullScreenMonitor.Services
         private readonly List<string> _targetProcesses;
         private readonly object _lockObject = new();
         private readonly ILogger _logger;
+        private readonly WindowCache _windowCache;
         private bool _disposed = false;
 
         #endregion
@@ -80,6 +81,7 @@ namespace FullScreenMonitor.Services
         {
             _targetProcesses = targetProcesses ?? new List<string>();
             _logger = logger ?? new Services.ConsoleLogger();
+            _windowCache = new WindowCache(_logger);
 
             _timer = new DispatcherTimer
             {
@@ -221,7 +223,7 @@ namespace FullScreenMonitor.Services
             try
             {
                 var currentForegroundWindow = NativeMethods.GetForegroundWindow();
-                
+
                 // フォーカスが変更された場合
                 if (currentForegroundWindow != _lastForegroundWindow && currentForegroundWindow != IntPtr.Zero)
                 {
@@ -229,14 +231,14 @@ namespace FullScreenMonitor.Services
 
                     // フォアグラウンドウィンドウのプロセス名を取得
                     var processName = GetProcessNameFromWindow(currentForegroundWindow);
-                    
+
                     // 対象プロセスかどうかチェック
                     if (!string.IsNullOrEmpty(processName) && _targetProcesses.Contains(processName))
                     {
                         var windowTitle = NativeMethods.GetWindowTitle(currentForegroundWindow);
-                        
+
                         _logger.LogInfo($"対象プロセスがフォーカスされました: {processName} ({windowTitle})");
-                        
+
                         // TargetProcessFocusedイベントを発火
                         TargetProcessFocused?.Invoke(this, new FullScreenStateChangedEventArgs(
                             true, currentForegroundWindow, CurrentMonitor, processName, windowTitle));
@@ -255,88 +257,16 @@ namespace FullScreenMonitor.Services
         /// <returns>全画面ウィンドウのハンドル、見つからない場合はIntPtr.Zero</returns>
         private IntPtr FindFullScreenWindow()
         {
-            IntPtr fullScreenWindow = IntPtr.Zero;
-
-            NativeMethods.EnumWindows((windowHandle, lParam) =>
+            try
             {
-                try
-                {
-                    // ウィンドウが可視で、システムウィンドウでない場合のみチェック
-                    if (!NativeMethods.IsWindowVisible(windowHandle) || NativeMethods.IsSystemWindow(windowHandle))
-                    {
-                        return true; // 次のウィンドウをチェック
-                    }
-
-                    // プロセス名をチェック
-                    if (NativeMethods.GetWindowThreadProcessId(windowHandle, out uint processId) == 0)
-                    {
-                        return true;
-                    }
-
-                    var processName = NativeMethods.GetProcessName(processId);
-                    if (string.IsNullOrEmpty(processName))
-                    {
-                        return true;
-                    }
-
-                    // 監視対象プロセスかどうかチェック
-                    if (!_targetProcesses.Contains(processName))
-                    {
-                        return true;
-                    }
-
-                    // ウィンドウの配置情報を取得
-                    var placement = new NativeMethods.WINDOWPLACEMENT();
-                    if (!NativeMethods.GetWindowPlacement(windowHandle, ref placement))
-                    {
-                        return true;
-                    }
-
-                    // 最大化状態かどうかチェック
-                    if (placement.ShowCmd != NativeMethods.SW_SHOWMAXIMIZED)
-                    {
-                        return true;
-                    }
-
-                    // ウィンドウサイズを取得
-                    if (!NativeMethods.GetWindowRect(windowHandle, out NativeMethods.RECT windowRect))
-                    {
-                        return true;
-                    }
-
-                    // モニター情報を取得
-                    var monitor = NativeMethods.MonitorFromWindow(windowHandle, NativeMethods.MONITOR_DEFAULTTONEAREST);
-                    if (monitor == IntPtr.Zero)
-                    {
-                        return true;
-                    }
-
-                    var monitorInfo = new NativeMethods.MONITORINFO();
-                    if (!NativeMethods.GetMonitorInfo(monitor, ref monitorInfo))
-                    {
-                        return true;
-                    }
-
-                    // ウィンドウがモニターの作業領域を完全に覆っているかチェック
-                    var workArea = monitorInfo.WorkArea;
-                    if (windowRect.Left <= workArea.Left &&
-                        windowRect.Top <= workArea.Top &&
-                        windowRect.Right >= workArea.Right &&
-                        windowRect.Bottom >= workArea.Bottom)
-                    {
-                        fullScreenWindow = windowHandle;
-                        return false; // 見つかったので列挙を停止
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug($"ウィンドウチェック中にエラーが発生しました: {ex.Message}");
-                }
-
-                return true; // 次のウィンドウをチェック
-            }, IntPtr.Zero);
-
-            return fullScreenWindow;
+                var fullScreenWindow = _windowCache.FindFullScreenWindow(_targetProcesses);
+                return fullScreenWindow?.Handle ?? IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"全画面ウィンドウ検索中にエラーが発生しました: {ex.Message}", ex);
+                return IntPtr.Zero;
+            }
         }
 
         /// <summary>
@@ -358,17 +288,15 @@ namespace FullScreenMonitor.Services
         {
             try
             {
-                if (NativeMethods.GetWindowThreadProcessId(windowHandle, out uint processId) != 0)
-                {
-                    return NativeMethods.GetProcessName(processId);
-                }
+                var windows = _windowCache.GetWindows();
+                var window = windows.FirstOrDefault(w => w.Handle == windowHandle);
+                return window.ProcessName ?? string.Empty;
             }
             catch (Exception ex)
             {
                 _logger.LogDebug($"プロセス名取得中にエラーが発生しました: {ex.Message}");
+                return string.Empty;
             }
-
-            return string.Empty;
         }
 
         #endregion
@@ -396,6 +324,7 @@ namespace FullScreenMonitor.Services
                 {
                     StopMonitoring();
                     _timer.Tick -= Timer_Tick;
+                    _windowCache?.Dispose();
                 }
 
                 _disposed = true;

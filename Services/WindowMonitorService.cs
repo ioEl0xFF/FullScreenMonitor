@@ -167,15 +167,68 @@ namespace FullScreenMonitor.Services
                     throw new ArgumentNullException(nameof(newSettings));
                 }
 
+                var oldSettings = CurrentSettings;
                 CurrentSettings = newSettings;
 
-                // 監視中の場合は再起動
-                if (IsMonitoring)
+                // 監視中の場合は部分更新を試行
+                if (IsMonitoring && _detector != null)
                 {
-                    StopMonitoring();
-                    StartMonitoring();
+                    try
+                    {
+                        // 監視間隔のみ変更の場合
+                        if (oldSettings.MonitorInterval != newSettings.MonitorInterval)
+                        {
+                            _detector.UpdateInterval(newSettings.MonitorInterval);
+                            _logger.LogInfo($"監視間隔を更新しました: {newSettings.MonitorInterval}ms");
+                        }
+
+                        // 対象プロセスのみ変更の場合
+                        if (!oldSettings.TargetProcesses.SequenceEqual(newSettings.TargetProcesses))
+                        {
+                            _detector.UpdateTargetProcesses(newSettings.TargetProcesses);
+                            _logger.LogInfo($"監視対象プロセスを更新しました: {string.Join(", ", newSettings.TargetProcesses)}");
+                        }
+
+                        // その他の設定変更時のみ再起動
+                        if (NeedsRestart(oldSettings, newSettings))
+                        {
+                            _logger.LogInfo("設定変更により監視サービスを再起動します");
+                            StopMonitoring();
+                            StartMonitoring();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"設定更新中にエラーが発生しました: {ex.Message}", ex);
+                        // エラー時は完全再起動を試行
+                        try
+                        {
+                            StopMonitoring();
+                            StartMonitoring();
+                        }
+                        catch (Exception restartEx)
+                        {
+                            _logger.LogError($"監視サービス再起動中にエラーが発生しました: {restartEx.Message}", restartEx);
+                            ErrorOccurred?.Invoke(this, "設定更新中にエラーが発生しました");
+                        }
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// 設定変更で再起動が必要かどうかを判定
+        /// </summary>
+        /// <param name="oldSettings">古い設定</param>
+        /// <param name="newSettings">新しい設定</param>
+        /// <returns>再起動が必要な場合true</returns>
+        private bool NeedsRestart(AppSettings oldSettings, AppSettings newSettings)
+        {
+            // 監視間隔と対象プロセス以外の変更がある場合のみ再起動
+            return oldSettings.StartWithWindows != newSettings.StartWithWindows ||
+                   oldSettings.RestoreOnSettingsClosed != newSettings.RestoreOnSettingsClosed ||
+                   oldSettings.RestoreOnAppExit != newSettings.RestoreOnAppExit ||
+                   oldSettings.UseDarkTheme != newSettings.UseDarkTheme;
         }
 
         /// <summary>
@@ -267,7 +320,7 @@ namespace FullScreenMonitor.Services
                 LastCheckTime = DateTime.Now;
 
                 _logger.LogInfo($"対象プロセスがフォーカスされました: {e.ProcessName} ({e.WindowTitle})");
-                
+
                 // 同一モニター上の対象プロセス以外のウィンドウを最小化
                 var minimizedCount = _minimizer.MinimizeAllNonTargetWindows(e.WindowHandle, e.MonitorHandle);
                 if (minimizedCount > 0)
