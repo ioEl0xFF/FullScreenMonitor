@@ -40,14 +40,14 @@ public class ValidationService : IValidationService
     /// <param name="processName">プロセス名</param>
     /// <param name="existingProcesses">既存のプロセス名リスト</param>
     /// <returns>検証結果</returns>
-    public ValidationResult ValidateProcessName(string processName, List<string> existingProcesses)
+    public Result<string> ValidateProcessName(string processName, List<string> existingProcesses)
     {
         try
         {
             // 空文字チェック
             if (string.IsNullOrWhiteSpace(processName))
             {
-                return ValidationResult.Failure(ErrorMessages.ProcessNameInputError);
+                return Result<string>.Failure(ErrorMessages.ProcessNameInputError);
             }
 
             var trimmed = processName.Trim();
@@ -55,14 +55,14 @@ public class ValidationService : IValidationService
             // 長さチェック
             if (trimmed.Length < 1 || trimmed.Length > 100)
             {
-                return ValidationResult.Failure("プロセス名は1文字以上100文字以下で入力してください。");
+                return Result<string>.Failure("プロセス名は1文字以上100文字以下で入力してください。");
             }
 
             // 無効な文字チェック
             var invalidChars = new[] { '<', '>', ':', '"', '|', '?', '*', '\\', '/' };
             if (invalidChars.Any(c => trimmed.Contains(c)))
             {
-                return ValidationResult.Failure("プロセス名に無効な文字が含まれています。");
+                return Result<string>.Failure("プロセス名に無効な文字が含まれています。");
             }
 
             // 重複チェック
@@ -72,16 +72,16 @@ public class ValidationService : IValidationService
                 if (existingProcesses.Any(existing => 
                     string.Equals(existing.ToLowerInvariant(), normalizedName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return ValidationResult.Failure(ErrorMessages.ProcessNameDuplicateError);
+                    return Result<string>.Failure(ErrorMessages.ProcessNameDuplicateError);
                 }
             }
 
-            return ValidationResult.Success();
+            return Result<string>.Success(trimmed);
         }
         catch (Exception ex)
         {
             _logger.LogError($"プロセス名検証エラー: {ex.Message}", ex);
-            return ValidationResult.Failure("プロセス名の検証中にエラーが発生しました。");
+            return Result<string>.Failure("プロセス名の検証中にエラーが発生しました。", ex);
         }
     }
 
@@ -90,26 +90,26 @@ public class ValidationService : IValidationService
     /// </summary>
     /// <param name="interval">監視間隔（ミリ秒）</param>
     /// <returns>検証結果</returns>
-    public ValidationResult ValidateMonitorInterval(int interval)
+    public Result<int> ValidateMonitorInterval(int interval)
     {
         try
         {
             if (interval < MonitorConstants.MinMonitorInterval)
             {
-                return ValidationResult.Failure($"監視間隔は{MonitorConstants.MinMonitorInterval}ms以上で設定してください。");
+                return Result<int>.Failure($"監視間隔は{MonitorConstants.MinMonitorInterval}ms以上で設定してください。");
             }
 
             if (interval > MonitorConstants.MaxMonitorInterval)
             {
-                return ValidationResult.Failure($"監視間隔は{MonitorConstants.MaxMonitorInterval}ms以下で設定してください。");
+                return Result<int>.Failure($"監視間隔は{MonitorConstants.MaxMonitorInterval}ms以下で設定してください。");
             }
 
-            return ValidationResult.Success();
+            return Result<int>.Success(interval);
         }
         catch (Exception ex)
         {
             _logger.LogError($"監視間隔検証エラー: {ex.Message}", ex);
-            return ValidationResult.Failure("監視間隔の検証中にエラーが発生しました。");
+            return Result<int>.Failure("監視間隔の検証中にエラーが発生しました。", ex);
         }
     }
 
@@ -118,20 +118,20 @@ public class ValidationService : IValidationService
     /// </summary>
     /// <param name="settings">設定</param>
     /// <returns>検証結果</returns>
-    public ValidationResult ValidateSettings(AppSettings settings)
+    public Result<AppSettings> ValidateSettings(AppSettings settings)
     {
         try
         {
             if (settings == null)
             {
-                return ValidationResult.Failure("設定がnullです。");
+                return Result<AppSettings>.Failure("設定がnullです。");
             }
 
             // 監視間隔の検証
             var intervalResult = ValidateMonitorInterval(settings.MonitorInterval);
-            if (!intervalResult.IsValid)
+            if (intervalResult.IsFailure)
             {
-                return intervalResult;
+                return Result<AppSettings>.Failure(intervalResult.ErrorMessage);
             }
 
             // プロセス名の検証
@@ -140,19 +140,19 @@ public class ValidationService : IValidationService
                 foreach (var processName in settings.TargetProcesses)
                 {
                     var processResult = ValidateProcessName(processName, new List<string>());
-                    if (!processResult.IsValid)
+                    if (processResult.IsFailure)
                     {
-                        return ValidationResult.Failure($"プロセス名 '{processName}' が無効です: {processResult.ErrorMessage}");
+                        return Result<AppSettings>.Failure($"プロセス名 '{processName}' が無効です: {processResult.ErrorMessage}");
                     }
                 }
             }
 
-            return ValidationResult.Success();
+            return Result<AppSettings>.Success(settings);
         }
         catch (Exception ex)
         {
             _logger.LogError($"設定検証エラー: {ex.Message}", ex);
-            return ValidationResult.Failure("設定の検証中にエラーが発生しました。");
+            return Result<AppSettings>.Failure("設定の検証中にエラーが発生しました。", ex);
         }
     }
 
