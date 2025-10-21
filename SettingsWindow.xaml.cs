@@ -22,36 +22,28 @@ namespace FullScreenMonitor
 
         #region コンストラクタ
 
-        public SettingsWindow()
-        {
-            InitializeComponent();
-            InitializeViewModel();
-        }
+    public SettingsWindow(SettingsViewModel viewModel)
+    {
+        InitializeComponent();
+        _viewModel = viewModel;
+        InitializeEventHandlers();
+    }
 
         #endregion
 
         #region 初期化
 
         /// <summary>
-        /// ViewModelを初期化
+        /// イベントハンドラーを初期化
         /// </summary>
-        private void InitializeViewModel()
+        private void InitializeEventHandlers()
         {
             try
             {
-                if (App.ServiceContainer == null)
+                if (_viewModel == null)
                 {
-                    throw new InvalidOperationException("サービスコンテナが初期化されていません");
+                    throw new InvalidOperationException("ViewModelが初期化されていません");
                 }
-
-                // ViewModelを作成
-                _viewModel = new SettingsViewModel(
-                    App.ServiceContainer.Resolve<ILogger>(),
-                    App.ServiceContainer.Resolve<ISettingsManager>(),
-                    App.ServiceContainer.Resolve<IStartupManager>(),
-                    App.ServiceContainer.Resolve<IThemeService>(),
-                    App.ServiceContainer.Resolve<IProcessManagementService>()
-                );
 
                 // イベントハンドラーを設定
                 _viewModel.OnSettingsClosed += OnSettingsClosed;
@@ -66,7 +58,7 @@ namespace FullScreenMonitor
             }
             catch (Exception ex)
             {
-                WinMessageBox.Show($"ViewModelの初期化中にエラーが発生しました:\n{ex.Message}",
+                WinMessageBox.Show($"イベントハンドラーの初期化中にエラーが発生しました:\n{ex.Message}",
                     "初期化エラー", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

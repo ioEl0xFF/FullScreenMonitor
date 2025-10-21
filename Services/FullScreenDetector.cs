@@ -235,13 +235,35 @@ namespace FullScreenMonitor.Services
                     // 対象プロセスかどうかチェック
                     if (!string.IsNullOrEmpty(processName) && _targetProcesses.Contains(processName))
                     {
-                        var windowTitle = NativeMethods.GetWindowTitle(currentForegroundWindow);
+                        // ★追加: キャッシュを強制更新して最新のウィンドウ状態を取得
+                        _windowCache.ForceUpdate();
+                        
+                        // フォーカスされたウィンドウが全画面かどうかを確認
+                        var windows = _windowCache.GetWindows();
+                        var focusedWindow = windows.FirstOrDefault(w => w.Handle == currentForegroundWindow);
 
-                        _logger.LogInfo($"対象プロセスがフォーカスされました: {processName} ({windowTitle})");
+                        if (focusedWindow.IsValid)
+                        {
+                            // モニター情報を取得
+                            var monitorInfo = new NativeMethods.MONITORINFO();
+                            if (NativeMethods.GetMonitorInfo(focusedWindow.MonitorHandle, ref monitorInfo))
+                            {
+                                // 全画面状態の場合のみイベントを発火
+                                if (focusedWindow.IsMaximized && focusedWindow.IsFullScreen(monitorInfo))
+                                {
+                                    var windowTitle = NativeMethods.GetWindowTitle(currentForegroundWindow);
+                                    _logger.LogInfo($"対象プロセス（全画面）がフォーカスされました: {processName} ({windowTitle})");
 
-                        // TargetProcessFocusedイベントを発火
-                        TargetProcessFocused?.Invoke(this, new FullScreenStateChangedEventArgs(
-                            true, currentForegroundWindow, CurrentMonitor, processName, windowTitle));
+                                    // TargetProcessFocusedイベントを発火
+                                    TargetProcessFocused?.Invoke(this, new FullScreenStateChangedEventArgs(
+                                        true, currentForegroundWindow, focusedWindow.MonitorHandle, processName, windowTitle));
+                                }
+                                else
+                                {
+                                    _logger.LogDebug($"対象プロセスがフォーカスされましたが、非全画面のためスキップ: {processName}");
+                                }
+                            }
+                        }
                     }
                 }
             }

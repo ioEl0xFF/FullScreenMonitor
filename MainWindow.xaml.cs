@@ -83,7 +83,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var settingsWindow = new SettingsWindow();
+            // ViewModelを作成
             var settingsViewModel = new SettingsViewModel(
                 App.ServiceContainer!.Resolve<ILogger>(),
                 App.ServiceContainer.Resolve<ISettingsManager>(),
@@ -93,7 +93,7 @@ public partial class MainWindow : Window
                 _viewModel?.GetStats() != null ? new WindowMonitorService(_viewModel.CurrentSettings, App.ServiceContainer.Resolve<ILogger>()) : null
             );
 
-            settingsWindow.DataContext = settingsViewModel;
+            // 設定を読み込み
             settingsViewModel.LoadSettings(_viewModel!.CurrentSettings, _viewModel.GetStats() != null ? new WindowMonitorService(_viewModel.CurrentSettings, App.ServiceContainer.Resolve<ILogger>()) : null);
 
             // 設定画面を閉じた時の復元処理を設定
@@ -105,6 +105,9 @@ public partial class MainWindow : Window
                     // バルーンチップ表示はViewModelで処理
                 }
             };
+
+            // SettingsWindowをViewModelと共に作成
+            var settingsWindow = new SettingsWindow(settingsViewModel);
 
             if (settingsWindow.ShowDialog() == true)
             {
