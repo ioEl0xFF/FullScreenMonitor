@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using FullScreenMonitor.Constants;
 using FullScreenMonitor.Exceptions;
@@ -53,6 +54,16 @@ namespace FullScreenMonitor
             {
                 _newProcessName = value;
                 OnPropertyChanged(nameof(NewProcessName));
+                
+                // テキスト変更時にボタン強調を制御
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    EmphasizeAddButton();
+                }
+                else
+                {
+                    ResetAddButton();
+                }
             }
         }
 
@@ -108,6 +119,29 @@ namespace FullScreenMonitor
             {
                 _restoreOnAppExit = value;
                 OnPropertyChanged(nameof(RestoreOnAppExit));
+            }
+        }
+
+        private int _selectedProcessCount = 0;
+        public int SelectedProcessCount
+        {
+            get => _selectedProcessCount;
+            set
+            {
+                _selectedProcessCount = value;
+                OnPropertyChanged(nameof(SelectedProcessCount));
+                UpdateDeleteButtonText();
+            }
+        }
+
+        private string _deleteButtonText = "選択項目を削除";
+        public string DeleteButtonText
+        {
+            get => _deleteButtonText;
+            set
+            {
+                _deleteButtonText = value;
+                OnPropertyChanged(nameof(DeleteButtonText));
             }
         }
 
@@ -175,6 +209,9 @@ namespace FullScreenMonitor
             TargetProcesses.Add(processName);
             NewProcessName = string.Empty;
 
+            // 追加後にボタンを元の状態に戻す
+            ResetAddButton();
+
             // 自動保存
             SaveSettings();
         }
@@ -231,6 +268,14 @@ namespace FullScreenMonitor
         }
 
         /// <summary>
+        /// プロセスリスト選択変更
+        /// </summary>
+        private void ProcessListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            SelectedProcessCount = ProcessListBox.SelectedItems.Count;
+        }
+
+        /// <summary>
         /// 実行中プロセスComboBox選択変更
         /// </summary>
         private void ProcessComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -238,8 +283,15 @@ namespace FullScreenMonitor
             if (ProcessComboBox.SelectedItem is ProcessInfo selectedProcess)
             {
                 NewProcessName = selectedProcess.ProcessName;
+                
+                // 選択時の視覚フィードバック
+                TriggerComboBoxSelectionAnimation();
+                
+                // 追加ボタンを強調
+                EmphasizeAddButton();
             }
         }
+
 
         /// <summary>
         /// プロセス一覧更新ボタンクリック
@@ -570,6 +622,82 @@ namespace FullScreenMonitor
             {
                 // デバッグ用：監視サービスがnullの場合の表示
                 UpdateStatus("監視サービス未接続", "--", 0, 0);
+            }
+        }
+
+        /// <summary>
+        /// ComboBox選択時のアニメーションをトリガー
+        /// </summary>
+        private void TriggerComboBoxSelectionAnimation()
+        {
+            try
+            {
+                var storyboard = (Storyboard)FindResource("ComboBoxSelectionAnimation");
+                storyboard.Begin(ProcessComboBox);
+
+                // 3秒後にアニメーションをリセット
+                var resetTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3)
+                };
+                resetTimer.Tick += (s, e) =>
+                {
+                    resetTimer.Stop();
+                    var resetStoryboard = (Storyboard)FindResource("ComboBoxSelectionResetAnimation");
+                    resetStoryboard.Begin(ProcessComboBox);
+                };
+                resetTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"ComboBox選択アニメーションの実行に失敗しました: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 追加ボタンを強調表示
+        /// </summary>
+        private void EmphasizeAddButton()
+        {
+            try
+            {
+                var storyboard = (Storyboard)FindResource("ButtonEmphasisAnimation");
+                storyboard.Begin(AddProcessButton);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"追加ボタン強調アニメーションの実行に失敗しました: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 追加ボタンを元の状態に戻す
+        /// </summary>
+        private void ResetAddButton()
+        {
+            try
+            {
+                var storyboard = (Storyboard)FindResource("ButtonEmphasisResetAnimation");
+                storyboard.Begin(AddProcessButton);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"追加ボタンリセットアニメーションの実行に失敗しました: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// 削除ボタンのテキストを更新
+        /// </summary>
+        private void UpdateDeleteButtonText()
+        {
+            if (SelectedProcessCount == 0)
+            {
+                DeleteButtonText = "選択項目を削除";
+            }
+            else
+            {
+                DeleteButtonText = $"選択項目を削除 ({SelectedProcessCount}個選択中)";
             }
         }
 

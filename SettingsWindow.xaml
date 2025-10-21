@@ -16,7 +16,7 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
         FontFamily="{DynamicResource MaterialDesignFont}">
-        
+
         <!-- タイトルバーの色をカスタマイズ -->
         <WindowChrome.WindowChrome>
             <WindowChrome CaptionHeight="0"
@@ -38,34 +38,34 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
+
         <Style x:Key="MaterialDesignSectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
         </Style>
-        
+
         <!-- アニメーション定義 -->
         <Storyboard x:Key="FadeInStoryboard">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
                            From="0" To="1" Duration="0:0:0.3"/>
         </Storyboard>
-        
+
         <Storyboard x:Key="ButtonHoverAnimation">
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
                            To="1.05" Duration="0:0:0.1"/>
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
                            To="1.05" Duration="0:0:0.1"/>
         </Storyboard>
-        
+
         <Storyboard x:Key="ButtonLeaveAnimation">
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
                            To="1.0" Duration="0:0:0.1"/>
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
                            To="1.0" Duration="0:0:0.1"/>
         </Storyboard>
-        
+
         <!-- ボタンスタイル -->
         <Style x:Key="AnimatedButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
             <Setter Property="RenderTransform">
@@ -84,7 +84,44 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        
+
+        <!-- ComboBox選択時のアニメーション -->
+        <Storyboard x:Key="ComboBoxSelectionAnimation">
+            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                           To="#E3F2FD" Duration="0:0:0.2"/>
+            <ColorAnimation Storyboard.TargetProperty="BorderBrush.Color"
+                           To="#2196F3" Duration="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetProperty="BorderThickness"
+                           To="2" Duration="0:0:0.2"/>
+        </Storyboard>
+
+        <Storyboard x:Key="ComboBoxSelectionResetAnimation">
+            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                           To="Transparent" Duration="0:0:0.3"/>
+            <ColorAnimation Storyboard.TargetProperty="BorderBrush.Color"
+                           To="{DynamicResource MaterialDesignDivider}" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetProperty="BorderThickness"
+                           To="1" Duration="0:0:0.3"/>
+        </Storyboard>
+
+        <Storyboard x:Key="ButtonEmphasisAnimation">
+            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                           To="#4CAF50" Duration="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                           To="1.1" Duration="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                           To="1.1" Duration="0:0:0.2"/>
+        </Storyboard>
+
+        <Storyboard x:Key="ButtonEmphasisResetAnimation">
+            <ColorAnimation Storyboard.TargetProperty="Background.Color"
+                           To="{DynamicResource MaterialDesignRaisedButtonBackground}" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                           To="1.0" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                           To="1.0" Duration="0:0:0.3"/>
+        </Storyboard>
+
         <!-- プロセスリストアイテムスタイル -->
         <Style x:Key="ProcessListItemStyle" TargetType="ListBoxItem">
             <Setter Property="Padding" Value="8"/>
@@ -102,14 +139,14 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                
-                                <materialDesign:PackIcon Kind="Application" 
+
+                                <materialDesign:PackIcon Kind="Application"
                                                        Grid.Column="0"
                                                        Width="16" Height="16"
                                                        VerticalAlignment="Center"
                                                        Margin="0,0,8,0"
                                                        Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                                
+
                                 <TextBlock Grid.Column="1"
                                           Text="{TemplateBinding Content}"
                                           VerticalAlignment="Center"
@@ -121,8 +158,10 @@
                                 <Setter Property="Background" Value="{DynamicResource MaterialDesignSelection}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource MaterialDesignSelection}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+                                <Setter Property="Background" Value="#2196F3"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                                <Setter Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -131,9 +170,9 @@
         </Style>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" 
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="True"
+                  CanContentScroll="False"
                   PanningMode="VerticalOnly">
         <StackPanel Margin="20">
             <!-- ヘッダー -->
@@ -142,12 +181,12 @@
                     <DropShadowEffect Color="Black" Opacity="0.2" ShadowDepth="4" BlurRadius="8"/>
                 </materialDesign:ColorZone.Effect>
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Settings" Width="32" Height="32" 
+                    <materialDesign:PackIcon Kind="Settings" Width="32" Height="32"
                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="FullScreenMonitor 設定" 
-                              FontSize="24" FontWeight="Medium" 
+                    <TextBlock Text="FullScreenMonitor 設定"
+                              FontSize="24" FontWeight="Medium"
                               VerticalAlignment="Center"/>
-                    <Button x:Name="ThemeToggleButton" 
+                    <Button x:Name="ThemeToggleButton"
                             Style="{StaticResource AnimatedButton}"
                             ToolTip="テーマ切り替え"
                             Click="ThemeToggleButton_Click"
@@ -163,7 +202,7 @@
             <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
                 <StackPanel>
                     <TextBlock Text="監視対象プロセス" Style="{StaticResource MaterialDesignSectionHeader}"/>
-                    
+
                     <!-- プロセス名入力 -->
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
@@ -171,13 +210,13 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        
+
                         <Grid Grid.Column="0" Margin="0,0,8,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            
+
                             <ComboBox x:Name="ProcessComboBox"
                                       Grid.Column="0"
                                       Text="{Binding NewProcessName, UpdateSourceTrigger=PropertyChanged}"
@@ -187,8 +226,9 @@
                                       Margin="0,0,8,0"
                                       materialDesign:HintAssist.Hint="プロセス名を入力"
                                       materialDesign:HintAssist.IsFloating="True"
-                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"/>
-                            
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                      SelectionChanged="ProcessComboBox_SelectionChanged"/>
+
                             <Button Grid.Column="1"
                                     Style="{StaticResource MaterialDesignIconButton}"
                                     ToolTip="プロセス一覧を更新"
@@ -196,13 +236,17 @@
                                 <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
                             </Button>
                         </Grid>
-                        
-                        <Button Grid.Column="2"
+
+                        <Button x:Name="AddProcessButton"
+                                Grid.Column="2"
                                 Click="AddProcess_Click"
                                 Style="{StaticResource AnimatedButton}"
                                 Margin="8,0,0,0">
+                            <Button.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Button.RenderTransform>
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" 
+                                <materialDesign:PackIcon Kind="Plus" Width="16" Height="16"
                                                         VerticalAlignment="Center" Margin="0,0,4,0"/>
                                 <TextBlock Text="追加" VerticalAlignment="Center"/>
                             </StackPanel>
@@ -216,7 +260,8 @@
                              Height="120"
                              Margin="0,0,0,12"
                              Style="{StaticResource MaterialDesignListBox}"
-                             ItemContainerStyle="{StaticResource ProcessListItemStyle}"/>
+                             ItemContainerStyle="{StaticResource ProcessListItemStyle}"
+                             SelectionChanged="ProcessListBox_SelectionChanged"/>
 
                     <!-- 削除ボタン -->
                     <Button Click="RemoveProcess_Click"
@@ -224,9 +269,9 @@
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Foreground="{StaticResource ErrorBrush}">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" 
+                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16"
                                                     VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <TextBlock Text="選択項目を削除" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding DeleteButtonText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -306,8 +351,8 @@
                     <StackPanel>
                         <!-- 監視状態インジケーター -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Ellipse x:Name="StatusIndicator" 
-                                     Width="12" Height="12" 
+                            <Ellipse x:Name="StatusIndicator"
+                                     Width="12" Height="12"
                                      Fill="{StaticResource SuccessBrush}"
                                      VerticalAlignment="Center"
                                      Margin="0,0,8,0">
@@ -322,7 +367,7 @@
                                        FontSize="14"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
-                        
+
                         <!-- 統計情報 -->
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -333,7 +378,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            
+
                             <!-- 最終チェック時間 -->
                             <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,8,8">
                                 <TextBlock Text="最終チェック"
@@ -346,7 +391,7 @@
                                            FontWeight="Medium"
                                            Foreground="{DynamicResource MaterialDesignBody}"/>
                             </StackPanel>
-                            
+
                             <!-- 対象プロセス数 -->
                             <StackPanel Grid.Column="1" Grid.Row="0" Margin="8,0,0,8">
                                 <TextBlock Text="対象プロセス"
@@ -359,7 +404,7 @@
                                            FontWeight="Medium"
                                            Foreground="{DynamicResource MaterialDesignBody}"/>
                             </StackPanel>
-                            
+
                             <!-- 最小化ウィンドウ数 -->
                             <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1">
                                 <TextBlock Text="最小化ウィンドウ"
@@ -384,7 +429,7 @@
                 <Button Click="Close_Click"
                         Style="{StaticResource AnimatedButton}">
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16" 
+                        <materialDesign:PackIcon Kind="Close" Width="16" Height="16"
                                                 VerticalAlignment="Center" Margin="0,0,4,0"/>
                         <TextBlock Text="閉じる" VerticalAlignment="Center"/>
                     </StackPanel>
