@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows;
 using FullScreenMonitor.Constants;
 using FullScreenMonitor.Exceptions;
+using FullScreenMonitor.Helpers;
 using FullScreenMonitor.Interfaces;
 using FullScreenMonitor.Services;
 using WinFormsApplication = System.Windows.Forms.Application;
@@ -20,6 +21,16 @@ public partial class App : System.Windows.Application
     private static readonly Mutex _mutex = new(false, AppConstants.SingleInstanceMutexName);
     private MainWindow? _mainWindow;
     private ILogger? _logger;
+    private ServiceContainer? _serviceContainer;
+
+    #endregion
+
+    #region プロパティ
+
+    /// <summary>
+    /// グローバルサービスコンテナ
+    /// </summary>
+    public static ServiceContainer? ServiceContainer { get; private set; }
 
     #endregion
 
@@ -51,6 +62,9 @@ public partial class App : System.Windows.Application
 
         // グローバル例外ハンドラーの設定
         SetupExceptionHandling();
+
+        // サービスコンテナの初期化
+        InitializeServiceContainer();
 
         try
         {
@@ -101,6 +115,7 @@ public partial class App : System.Windows.Application
         {
             _mutex.ReleaseMutex();
             _mutex.Dispose();
+            _serviceContainer?.Dispose();
             _logger?.Dispose();
             base.OnExit(e);
         }
@@ -109,6 +124,36 @@ public partial class App : System.Windows.Application
     #endregion
 
     #region プライベートメソッド
+
+    /// <summary>
+    /// サービスコンテナの初期化
+    /// </summary>
+    private void InitializeServiceContainer()
+    {
+        try
+        {
+            _logger?.LogInfo("サービスコンテナを初期化中...");
+
+            _serviceContainer = new ServiceContainer();
+            ServiceContainer = _serviceContainer;
+
+            // 基本サービスの登録
+            _serviceContainer.RegisterSingleton<ILogger>(() => _logger!);
+            _serviceContainer.RegisterSingleton<ISettingsManager>(() => new Helpers.SettingsManager(_logger!));
+            _serviceContainer.RegisterSingleton<IStartupManager>(() => new Helpers.StartupManager(_logger!));
+            _serviceContainer.RegisterSingleton<IThemeService>(() => new ThemeService(_logger!));
+            _serviceContainer.RegisterSingleton<INotifyIconService>(() => new NotifyIconService(_logger!));
+            _serviceContainer.RegisterSingleton<IProcessManagementService>(() => new ProcessManagementService(_logger!));
+            _serviceContainer.RegisterSingleton<IValidationService>(() => new ValidationService(_logger!));
+
+            _logger?.LogInfo("サービスコンテナの初期化が完了しました");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError($"サービスコンテナの初期化に失敗しました: {ex.Message}", ex);
+            throw;
+        }
+    }
 
     /// <summary>
     /// 例外ハンドリングの設定

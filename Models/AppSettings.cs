@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using FullScreenMonitor.Constants;
 
@@ -61,10 +62,13 @@ namespace FullScreenMonitor.Models
         /// <summary>
         /// 設定の検証
         /// </summary>
+        /// <returns>設定が有効な場合true</returns>
         public bool IsValid()
         {
             return MonitorInterval >= MonitorConstants.MinMonitorInterval &&
-                   MonitorInterval <= MonitorConstants.MaxMonitorInterval;
+                   MonitorInterval <= MonitorConstants.MaxMonitorInterval &&
+                   TargetProcesses != null &&
+                   TargetProcesses.All(p => !string.IsNullOrWhiteSpace(p));
         }
     }
 }
