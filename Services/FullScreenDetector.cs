@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using FullScreenMonitor.Constants;
 using FullScreenMonitor.Exceptions;
 using FullScreenMonitor.Helpers;
@@ -13,16 +14,15 @@ namespace FullScreenMonitor.Services
     /// <summary>
     /// 全画面検出サービス
     /// </summary>
-    public class FullScreenDetector : IFullScreenDetector
+    public class FullScreenDetector : ServiceBase, IFullScreenDetector
     {
         #region フィールド
 
-        private readonly DispatcherTimer _timer;
         private readonly List<string> _targetProcesses;
         private readonly object _lockObject = new();
-        private readonly ILogger _logger;
-        private readonly WindowCache _windowCache;
-        private bool _disposed = false;
+        private readonly IWindowCache _windowCache;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private Task? _monitoringTask;
 
         #endregion
 
@@ -67,6 +67,11 @@ namespace FullScreenMonitor.Services
         /// </summary>
         private IntPtr _lastForegroundWindow = IntPtr.Zero;
 
+        /// <summary>
+        /// 監視間隔（ミリ秒）
+        /// </summary>
+        private int _intervalMs;
+
         #endregion
 
         #region コンストラクタ
@@ -77,17 +82,12 @@ namespace FullScreenMonitor.Services
         /// <param name="targetProcesses">監視対象プロセス名のリスト</param>
         /// <param name="intervalMs">監視間隔（ミリ秒）</param>
         /// <param name="logger">ロガー</param>
-        public FullScreenDetector(List<string> targetProcesses, int intervalMs = MonitorConstants.DefaultMonitorInterval, ILogger? logger = null)
+        /// <param name="windowCache">ウィンドウキャッシュ</param>
+        public FullScreenDetector(List<string> targetProcesses, int intervalMs, ILogger logger, IWindowCache windowCache) : base(logger)
         {
             _targetProcesses = targetProcesses ?? new List<string>();
-            _logger = logger ?? new Services.ConsoleLogger();
-            _windowCache = new WindowCache(_logger);
-
-            _timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(intervalMs)
-            };
-            _timer.Tick += Timer_Tick;
+            _windowCache = windowCache ?? throw new ArgumentNullException(nameof(windowCache));
+            _intervalMs = intervalMs;
         }
 
         #endregion
@@ -101,9 +101,10 @@ namespace FullScreenMonitor.Services
         {
             lock (_lockObject)
             {
-                if (!_disposed && !IsMonitoring)
+                if (!IsDisposed && !IsMonitoring)
                 {
-                    _timer.Start();
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    _monitoringTask = StartMonitoringAsync(_cancellationTokenSource.Token);
                     IsMonitoring = true;
                 }
             }
@@ -118,7 +119,21 @@ namespace FullScreenMonitor.Services
             {
                 if (IsMonitoring)
                 {
-                    _timer.Stop();
+                    _cancellationTokenSource?.Cancel();
+                    
+                    // 非同期タスクの完了を待機するが、UIをブロックしないように短いタイムアウトを使用
+                    try
+                    {
+                        _monitoringTask?.Wait(TimeSpan.FromMilliseconds(100)); // 100msでタイムアウト
+                    }
+                    catch (AggregateException)
+                    {
+                        // タスクがキャンセルされた場合は無視
+                    }
+                    
+                    _cancellationTokenSource?.Dispose();
+                    _cancellationTokenSource = null;
+                    _monitoringTask = null;
                     IsMonitoring = false;
                 }
             }
@@ -132,9 +147,9 @@ namespace FullScreenMonitor.Services
         {
             lock (_lockObject)
             {
-                if (!_disposed)
+                if (!IsDisposed)
                 {
-                    _timer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+                    _intervalMs = intervalMs;
                 }
             }
         }
@@ -157,20 +172,40 @@ namespace FullScreenMonitor.Services
 
         #endregion
 
-        #region イベントハンドラー
+        #region 非同期メソッド
 
         /// <summary>
-        /// タイマーイベントハンドラー
+        /// 非同期監視を開始
         /// </summary>
-        private void Timer_Tick(object? sender, EventArgs e)
+        /// <param name="cancellationToken">キャンセレーショントークン</param>
+        /// <returns>監視タスク</returns>
+        private async Task StartMonitoringAsync(CancellationToken cancellationToken)
         {
             try
             {
-                CheckForFullScreenWindows();
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        CheckForFullScreenWindows();
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError(ErrorMessages.FullScreenDetectionError, ex);
+                    }
+
+                    // 指定された間隔で待機
+                    await Task.Delay(_intervalMs, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // キャンセルは正常な終了
+                LogDebug("監視がキャンセルされました");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ErrorMessages.FullScreenDetectionError, ex);
+                LogError("監視中に予期しないエラーが発生しました", ex);
             }
         }
 
@@ -185,7 +220,7 @@ namespace FullScreenMonitor.Services
         {
             lock (_lockObject)
             {
-                if (_disposed || _targetProcesses.Count == 0)
+                if (IsDisposed || _targetProcesses.Count == 0)
                 {
                     return;
                 }
@@ -252,7 +287,7 @@ namespace FullScreenMonitor.Services
                                 if (focusedWindow.IsMaximized && focusedWindow.IsFullScreen(monitorInfo))
                                 {
                                     var windowTitle = NativeMethods.GetWindowTitle(currentForegroundWindow);
-                                    _logger.LogInfo($"対象プロセス（全画面）がフォーカスされました: {processName} ({windowTitle})");
+                                    LogInfo($"対象プロセス（全画面）がフォーカスされました: {processName} ({windowTitle})");
 
                                     // TargetProcessFocusedイベントを発火
                                     TargetProcessFocused?.Invoke(this, new FullScreenStateChangedEventArgs(
@@ -260,7 +295,7 @@ namespace FullScreenMonitor.Services
                                 }
                                 else
                                 {
-                                    _logger.LogDebug($"対象プロセスがフォーカスされましたが、非全画面のためスキップ: {processName}");
+                                    LogDebug($"対象プロセスがフォーカスされましたが、非全画面のためスキップ: {processName}");
                                 }
                             }
                         }
@@ -269,7 +304,7 @@ namespace FullScreenMonitor.Services
             }
             catch (Exception ex)
             {
-                _logger.LogDebug($"フォーカス変更チェック中にエラーが発生しました: {ex.Message}");
+                LogDebug($"フォーカス変更チェック中にエラーが発生しました: {ex.Message}");
             }
         }
 
@@ -286,7 +321,7 @@ namespace FullScreenMonitor.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError($"全画面ウィンドウ検索中にエラーが発生しました: {ex.Message}", ex);
+                LogError($"全画面ウィンドウ検索中にエラーが発生しました: {ex.Message}", ex);
                 return IntPtr.Zero;
             }
         }
@@ -316,7 +351,7 @@ namespace FullScreenMonitor.Services
             }
             catch (Exception ex)
             {
-                _logger.LogDebug($"プロセス名取得中にエラーが発生しました: {ex.Message}");
+                LogDebug($"プロセス名取得中にエラーが発生しました: {ex.Message}");
                 return string.Empty;
             }
         }
@@ -328,28 +363,18 @@ namespace FullScreenMonitor.Services
         /// <summary>
         /// リソースを解放
         /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// リソースを解放
-        /// </summary>
         /// <param name="disposing">マネージリソースを解放するかどうか</param>
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (!IsDisposed)
             {
                 if (disposing)
                 {
                     StopMonitoring();
-                    _timer.Tick -= Timer_Tick;
-                    _windowCache?.Dispose();
+                    _cancellationTokenSource?.Dispose();
                 }
 
-                _disposed = true;
+                base.Dispose(disposing);
             }
         }
 
