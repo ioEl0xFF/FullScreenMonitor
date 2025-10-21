@@ -36,6 +36,7 @@ public class SettingsViewModel : ViewModelBase
     private int _monitorInterval = 500;
     private bool _startWithWindows = false;
     private bool _restoreOnSettingsClosed = true;
+    private bool _restoreOnFullScreenExit = true;
     private bool _restoreOnAppExit = true;
     private int _selectedProcessCount = 0;
     private string _deleteButtonText = "選択項目を削除";
@@ -111,6 +112,15 @@ public class SettingsViewModel : ViewModelBase
     {
         get => _restoreOnSettingsClosed;
         set => SetProperty(ref _restoreOnSettingsClosed, value);
+    }
+
+    /// <summary>
+    /// 全画面解除時に復元
+    /// </summary>
+    public bool RestoreOnFullScreenExit
+    {
+        get => _restoreOnFullScreenExit;
+        set => SetProperty(ref _restoreOnFullScreenExit, value);
     }
 
     /// <summary>
@@ -247,6 +257,7 @@ public class SettingsViewModel : ViewModelBase
             MonitorInterval = settings.MonitorInterval;
             StartWithWindows = _startupManager.IsRegistered();
             RestoreOnSettingsClosed = settings.RestoreOnSettingsClosed;
+            RestoreOnFullScreenExit = settings.RestoreOnFullScreenExit;
             RestoreOnAppExit = settings.RestoreOnAppExit;
             IsDarkTheme = settings.UseDarkTheme;
 
@@ -277,6 +288,7 @@ public class SettingsViewModel : ViewModelBase
             MonitorInterval = MonitorInterval,
             StartWithWindows = StartWithWindows,
             RestoreOnSettingsClosed = RestoreOnSettingsClosed,
+            RestoreOnFullScreenExit = RestoreOnFullScreenExit,
             RestoreOnAppExit = RestoreOnAppExit,
             UseDarkTheme = IsDarkTheme
         };

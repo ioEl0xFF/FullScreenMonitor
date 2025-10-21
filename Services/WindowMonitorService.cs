@@ -294,12 +294,19 @@ namespace FullScreenMonitor.Services
                 else
                 {
                     _logger.LogInfo("全画面状態が解除されました");
-                    // 全画面が解除された場合：最小化したウィンドウを復元
-                    var restoredCount = _minimizer.RestoreMinimizedWindows();
-                    if (restoredCount > 0)
+                    // 全画面が解除された場合：設定に基づいて最小化したウィンドウを復元
+                    if (CurrentSettings.RestoreOnFullScreenExit)
                     {
-                        _logger.LogInfo($"{restoredCount}個のウィンドウを復元しました");
-                        WindowsRestored?.Invoke(this, restoredCount);
+                        var restoredCount = _minimizer.RestoreMinimizedWindows();
+                        if (restoredCount > 0)
+                        {
+                            _logger.LogInfo($"{restoredCount}個のウィンドウを復元しました");
+                            WindowsRestored?.Invoke(this, restoredCount);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInfo("全画面解除時の自動復元が無効のため、ウィンドウを復元しません");
                     }
                 }
             }

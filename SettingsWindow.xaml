@@ -336,6 +336,11 @@
                                   IsChecked="{Binding RestoreOnSettingsClosed}"
                                   Margin="0,0,0,8"
                                   Style="{StaticResource MaterialDesignCheckBox}"/>
+                        <CheckBox x:Name="RestoreOnFullScreenExitCheckBox"
+                                  Content="全画面解除時にウィンドウを復元する"
+                                  IsChecked="{Binding RestoreOnFullScreenExit}"
+                                  Margin="0,0,0,8"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
                         <CheckBox x:Name="RestoreOnAppExitCheckBox"
                                   Content="ソフト終了時に最小化されたウィンドウを復元"
                                   IsChecked="{Binding RestoreOnAppExit}"

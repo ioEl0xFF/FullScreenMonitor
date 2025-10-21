@@ -41,6 +41,12 @@ namespace FullScreenMonitor.Models
         public bool RestoreOnAppExit { get; set; } = true;
 
         /// <summary>
+        /// 全画面解除時に最小化されたウィンドウを復元するかどうか
+        /// </summary>
+        [JsonPropertyName("restoreOnFullScreenExit")]
+        public bool RestoreOnFullScreenExit { get; set; } = true;
+
+        /// <summary>
         /// ダークテーマを使用するかどうか
         /// </summary>
         [JsonPropertyName("useDarkTheme")]
