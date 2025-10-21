@@ -28,8 +28,8 @@
     <Window.Resources>
         <!-- Material Design カスタムスタイル -->
         <Style x:Key="MaterialDesignCard" TargetType="materialDesign:Card">
-            <Setter Property="Margin" Value="0,12"/>
-            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Padding" Value="16"/>
             <Setter Property="UniformCornerRadius" Value="8"/>
             <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp4"/>
             <Style.Triggers>
@@ -168,15 +168,26 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Expanderスタイル -->
+        <Style x:Key="MaterialDesignExpander" TargetType="Expander" BasedOn="{StaticResource MaterialDesignExpander}">
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+        </Style>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="False"
-                  PanningMode="VerticalOnly">
-        <StackPanel Margin="20">
-            <!-- ヘッダー -->
-            <materialDesign:ColorZone Mode="PrimaryMid" Padding="20,20,16,20" Margin="0,0,0,20">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- ヘッダー -->
+            <RowDefinition Height="*"/>    <!-- メインコンテンツ -->
+            <RowDefinition Height="Auto"/> <!-- フッター -->
+        </Grid.RowDefinitions>
+        <!-- ヘッダー -->
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="20,20,16,20" Margin="0,0,0,20" Grid.Row="0">
                 <materialDesign:ColorZone.Effect>
                     <DropShadowEffect Color="Black" Opacity="0.2" ShadowDepth="4" BlurRadius="8"/>
                 </materialDesign:ColorZone.Effect>
@@ -196,9 +207,18 @@
                         <materialDesign:PackIcon Kind="ThemeLightDark" Width="20" Height="20"/>
                     </Button>
                 </StackPanel>
-            </materialDesign:ColorZone>
+        </materialDesign:ColorZone>
 
-            <!-- 監視対象プロセス -->
+        <!-- メインコンテンツ: 2カラムGrid -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左カラム -->
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <!-- 監視対象プロセス -->
             <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
                 <StackPanel>
                     <TextBlock Text="監視対象プロセス" Style="{StaticResource MaterialDesignSectionHeader}"/>
@@ -257,7 +277,7 @@
                     <ListBox x:Name="ProcessListBox"
                              ItemsSource="{Binding TargetProcesses}"
                              SelectionMode="Extended"
-                             Height="120"
+                             Height="100"
                              Margin="0,0,0,12"
                              Style="{StaticResource MaterialDesignListBox}"
                              ItemContainerStyle="{StaticResource ProcessListItemStyle}"
@@ -275,9 +295,34 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-            </materialDesign:Card>
+                </materialDesign:Card>
 
-            <!-- 監視間隔 -->
+                <!-- ウィンドウ復元設定 -->
+                <Expander Header="ウィンドウ復元設定"
+                          Style="{StaticResource MaterialDesignExpander}"
+                          IsExpanded="False">
+                    <StackPanel>
+                        <CheckBox x:Name="RestoreOnSettingsClosedCheckBox"
+                                  Content="設定画面を閉じた時に最小化されたウィンドウを復元"
+                                  IsChecked="{Binding RestoreOnSettingsClosed}"
+                                  Margin="0,0,0,8"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
+                        <CheckBox x:Name="RestoreOnFullScreenExitCheckBox"
+                                  Content="全画面解除時にウィンドウを復元する"
+                                  IsChecked="{Binding RestoreOnFullScreenExit}"
+                                  Margin="0,0,0,8"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
+                        <CheckBox x:Name="RestoreOnAppExitCheckBox"
+                                  Content="ソフト終了時に最小化されたウィンドウを復元"
+                                  IsChecked="{Binding RestoreOnAppExit}"
+                                  Style="{StaticResource MaterialDesignCheckBox}"/>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+
+            <!-- 右カラム -->
+            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                <!-- 監視間隔 -->
             <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
                 <StackPanel>
                     <TextBlock Text="監視間隔" Style="{StaticResource MaterialDesignSectionHeader}"/>
@@ -313,9 +358,9 @@
                         </StackPanel>
                     </Grid>
                 </StackPanel>
-            </materialDesign:Card>
+                </materialDesign:Card>
 
-            <!-- スタートアップ設定 -->
+                <!-- スタートアップ設定 -->
             <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
                 <StackPanel>
                     <TextBlock Text="スタートアップ設定" Style="{StaticResource MaterialDesignSectionHeader}"/>
@@ -324,32 +369,9 @@
                               IsChecked="{Binding StartWithWindows}"
                               Style="{StaticResource MaterialDesignCheckBox}"/>
                 </StackPanel>
-            </materialDesign:Card>
+                </materialDesign:Card>
 
-            <!-- ウィンドウ復元設定 -->
-            <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
-                <StackPanel>
-                    <TextBlock Text="ウィンドウ復元設定" Style="{StaticResource MaterialDesignSectionHeader}"/>
-                    <StackPanel>
-                        <CheckBox x:Name="RestoreOnSettingsClosedCheckBox"
-                                  Content="設定画面を閉じた時に最小化されたウィンドウを復元"
-                                  IsChecked="{Binding RestoreOnSettingsClosed}"
-                                  Margin="0,0,0,8"
-                                  Style="{StaticResource MaterialDesignCheckBox}"/>
-                        <CheckBox x:Name="RestoreOnFullScreenExitCheckBox"
-                                  Content="全画面解除時にウィンドウを復元する"
-                                  IsChecked="{Binding RestoreOnFullScreenExit}"
-                                  Margin="0,0,0,8"
-                                  Style="{StaticResource MaterialDesignCheckBox}"/>
-                        <CheckBox x:Name="RestoreOnAppExitCheckBox"
-                                  Content="ソフト終了時に最小化されたウィンドウを復元"
-                                  IsChecked="{Binding RestoreOnAppExit}"
-                                  Style="{StaticResource MaterialDesignCheckBox}"/>
-                    </StackPanel>
-                </StackPanel>
-            </materialDesign:Card>
-
-            <!-- 状態表示 -->
+                <!-- 状態表示 -->
             <materialDesign:Card Style="{StaticResource MaterialDesignCard}">
                 <StackPanel>
                     <TextBlock Text="アプリケーション状態" Style="{StaticResource MaterialDesignSectionHeader}"/>
@@ -425,12 +447,15 @@
                         </Grid>
                     </StackPanel>
                 </StackPanel>
-            </materialDesign:Card>
+                </materialDesign:Card>
+            </StackPanel>
+        </Grid>
 
-            <!-- ボタン -->
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        Margin="0,20,0,20">
+        <!-- フッター -->
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,20,0,20"
+                    Grid.Row="2">
                 <Button Click="Close_Click"
                         Style="{StaticResource AnimatedButton}">
                     <StackPanel Orientation="Horizontal">
@@ -439,8 +464,7 @@
                         <TextBlock Text="閉じる" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-            </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+    </Grid>
 </Window>
 
